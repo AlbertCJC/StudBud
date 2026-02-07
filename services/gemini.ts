@@ -4,7 +4,8 @@ import { FlashcardData, QuizData, GenerationMode } from "../types";
 
 export async function generateStudyMaterial(
   content: string | { mimeType: string, data: string },
-  mode: GenerationMode
+  mode: GenerationMode,
+  count: number = 10
 ): Promise<any[]> {
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
   
@@ -38,16 +39,16 @@ export async function generateStudyMaterial(
   };
 
   const systemInstruction = mode === GenerationMode.FLASHCARDS 
-    ? "You are an expert educator. Extract important concepts into high-quality flashcards with clear questions and concise answers."
-    : "You are an expert educator. Create challenging multiple-choice questions from the content. Provide 4 options per question and clearly identify the correct answer.";
+    ? `You are an expert educator. Extract important concepts into exactly ${count} high-quality flashcards with clear questions and concise answers. Do not provide more or fewer than requested.`
+    : `You are an expert educator. Create exactly ${count} challenging multiple-choice questions from the content. Provide 4 options per question and clearly identify the correct answer. Do not provide more or fewer than requested.`;
 
   try {
     let parts: any[] = [];
     if (typeof content === 'string') {
-      parts.push({ text: `Create study material from this text in ${mode} format:\n\n${content}` });
+      parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this text:\n\n${content}` });
     } else {
       parts.push({ inlineData: content });
-      parts.push({ text: `Create study material from this document in ${mode} format.` });
+      parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this document.` });
     }
 
     const response = await ai.models.generateContent({
@@ -64,7 +65,7 @@ export async function generateStudyMaterial(
     return data.map((item: any, index: number) => ({
       ...item,
       id: `${Date.now()}-${index}`,
-    }));
+    })).slice(0, count); // Double check count
   } catch (error) {
     console.error("Gemini Generation Error:", error);
     throw error;
