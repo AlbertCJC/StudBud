@@ -209,15 +209,7 @@ const App: React.FC = () => {
       {/* Header */}
       <nav className={`p-6 flex justify-between items-center border-b backdrop-blur-xl sticky top-0 z-50 transition-colors ${navBg}`}>
         <div className="flex items-center gap-3 cursor-pointer group" onClick={handleReset}>
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-cyan-400 to-blue-600 shadow-lg flex items-center justify-center transition-all group-hover:scale-110 group-hover:rotate-3 overflow-hidden border border-white/20">
-             <img 
-               src="./assets/logo.png" 
-               className="w-full h-full object-cover grayscale brightness-110" 
-               alt="StudBud Logo" 
-               onError={(e) => { e.currentTarget.src = "https://img.freepik.com/premium-vector/owl-logo-design_677341-267.jpg" }}
-             />
-          </div>
-          <h1 className="text-xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-blue-600">
+          <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-blue-600 transition-all group-hover:scale-105">
             StudBud
           </h1>
         </div>
@@ -263,30 +255,15 @@ const App: React.FC = () => {
         {state === AppState.IDLE && (
           <div className="w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-1000">
             
-            {/* Mascot Hero Section */}
-            <div className="relative mb-6">
-               <div className={`absolute inset-0 blur-3xl rounded-full transition-all duration-700 ${theme === 'dark' ? 'bg-cyan-500/10 opacity-60' : 'bg-cyan-100/50 opacity-40'}`} />
-               <div className="relative animate-float mascot-glow">
-                  <div className={`w-48 h-48 md:w-56 md:h-56 rounded-[3rem] overflow-hidden border-4 ${theme === 'dark' ? 'border-white/5 shadow-2xl shadow-cyan-500/10' : 'border-white shadow-xl shadow-slate-200'}`}>
-                    <img 
-                      src="./assets/mascot.png" 
-                      alt="StudBud Owl Mascot"
-                      className={`w-full h-full object-cover transition-all duration-700 ${theme === 'dark' ? 'brightness-90 contrast-125' : 'brightness-105'}`}
-                      onError={(e) => { e.currentTarget.src = "https://images.squarespace-cdn.com/content/v1/5e949a92e17d55230cd1d44f/1614713833896-YJ5XN6W0S8R9B8N8K1B1/Owl+Logo+Design+by+Elias+Stein.jpg?format=1000w" }}
-                    />
-                  </div>
-               </div>
-            </div>
-
-            <div className="text-center mb-10">
-              <h2 className="text-4xl md:text-5xl lg:text-6xl font-black mb-4 tracking-tighter leading-tight">
-                Meet <span className="text-cyan-500">StudBud</span>. <br/> Your AI Study Partner.
+            <div className="text-center mb-10 mt-8">
+              <h2 className="text-4xl md:text-5xl lg:text-7xl font-black mb-6 tracking-tighter leading-tight">
+                Welcome to <span className="text-cyan-500">StudBud</span>. <br/> Your AI Study Partner.
               </h2>
-              <p className={`${subTextClass} text-lg md:text-xl max-w-xl mx-auto mb-10 font-medium`}>
+              <p className={`${subTextClass} text-lg md:text-xl max-w-xl mx-auto mb-14 font-medium opacity-90`}>
                 Upload notes or paste text to generate interactive flashcards and practice quizzes in seconds.
               </p>
 
-              <div className={`inline-flex p-1.5 rounded-[1.5rem] border mb-10 backdrop-blur-sm shadow-md transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-200 border-slate-300'}`}>
+              <div className={`inline-flex p-1.5 rounded-[1.5rem] border mb-14 backdrop-blur-sm shadow-md transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-200 border-slate-300'}`}>
                 <button
                   onClick={() => setInputTab('file')}
                   className={`px-8 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-3 ${inputTab === 'file' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
