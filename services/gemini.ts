@@ -7,7 +7,8 @@ export async function generateStudyMaterial(
   mode: GenerationMode,
   count: number = 10
 ): Promise<any[]> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+  // Use process.env.API_KEY directly as per @google/genai guidelines.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const flashcardSchema = {
     type: Type.ARRAY,
@@ -51,8 +52,9 @@ export async function generateStudyMaterial(
       parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this document.` });
     }
 
+    // Use gemini-3-pro-preview for complex study material generation tasks.
     const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
+      model: 'gemini-3-pro-preview',
       contents: { parts },
       config: {
         systemInstruction,
@@ -61,6 +63,7 @@ export async function generateStudyMaterial(
       },
     });
 
+    // Access the .text property directly as it is a getter.
     const data = JSON.parse(response.text || '[]');
     return data.map((item: any, index: number) => ({
       ...item,
