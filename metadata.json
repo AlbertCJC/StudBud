@@ -1,0 +1,7 @@
+{
+  "name": "StudBud",
+  "description": "A high-fidelity AI-powered flashcard generator with a sleek dark mode interface and neon blue accents.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
