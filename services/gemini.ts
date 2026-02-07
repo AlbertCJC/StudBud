@@ -48,13 +48,18 @@ export async function generateStudyMaterial(
     if (typeof content === 'string') {
       parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this text:\n\n${content}` });
     } else {
-      parts.push({ inlineData: content });
+      parts.push({ 
+        inlineData: {
+          mimeType: content.mimeType,
+          data: content.data
+        } 
+      });
       parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this document.` });
     }
 
-    // Use gemini-3-pro-preview for complex study material generation tasks.
+    // Switched to 'gemini-3-flash-preview' for better free-tier availability and faster response times.
     const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
+      model: 'gemini-3-flash-preview',
       contents: { parts },
       config: {
         systemInstruction,
@@ -63,12 +68,17 @@ export async function generateStudyMaterial(
       },
     });
 
-    // Access the .text property directly as it is a getter.
-    const data = JSON.parse(response.text || '[]');
+    // Access the .text property directly.
+    const responseText = response.text;
+    if (!responseText) {
+      throw new Error("No response text received from AI");
+    }
+
+    const data = JSON.parse(responseText);
     return data.map((item: any, index: number) => ({
       ...item,
       id: `${Date.now()}-${index}`,
-    })).slice(0, count); // Double check count
+    })).slice(0, count);
   } catch (error) {
     console.error("Gemini Generation Error:", error);
     throw error;
