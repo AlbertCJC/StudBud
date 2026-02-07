@@ -1,86 +1,69 @@
 
-import { GoogleGenAI, Type } from "@google/genai";
-import { FlashcardData, QuizData, GenerationMode } from "../types";
+import { GenerationMode } from "../types";
 
 export async function generateStudyMaterial(
   content: string | { mimeType: string, data: string },
   mode: GenerationMode,
   count: number = 10
 ): Promise<any[]> {
-  // Use process.env.API_KEY directly as per @google/genai guidelines.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = process.env.API_KEY;
   
-  const flashcardSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        question: { type: Type.STRING, description: 'The study question or concept name' },
-        answer: { type: Type.STRING, description: 'The explanation or answer' },
-      },
-      required: ['question', 'answer'],
-    },
-  };
+  let textInput = "";
+  if (typeof content === 'string') {
+    textInput = content;
+  } else {
+    // Current Cerebras Llama models are text-optimized. 
+    // For a world-class experience, we notify the user if they try to use images in this mode.
+    throw new Error("Image analysis is not supported with the Cerebras Llama-3.3 model. Please use the 'Custom Text' tab for instant generation.");
+  }
 
-  const quizSchema = {
-    type: Type.ARRAY,
-    items: {
-      type: Type.OBJECT,
-      properties: {
-        question: { type: Type.STRING, description: 'The multiple choice question' },
-        options: { 
-          type: Type.ARRAY, 
-          items: { type: Type.STRING },
-          description: 'Four distinct possible answers'
-        },
-        correctAnswer: { type: Type.STRING, description: 'The exact string matching the correct option' },
-      },
-      required: ['question', 'options', 'correctAnswer'],
-    },
-  };
-
-  const systemInstruction = mode === GenerationMode.FLASHCARDS 
-    ? `You are an expert educator. Extract important concepts into exactly ${count} high-quality flashcards with clear questions and concise answers. Do not provide more or fewer than requested.`
-    : `You are an expert educator. Create exactly ${count} challenging multiple-choice questions from the content. Provide 4 options per question and clearly identify the correct answer. Do not provide more or fewer than requested.`;
+  const systemPrompt = mode === GenerationMode.FLASHCARDS 
+    ? `You are an expert educational assistant. Your task is to generate exactly ${count} high-quality flashcards from the provided content. 
+       Format your response as a JSON object with a key "items" which is an array of objects. 
+       Each object must have "question" and "answer" properties. 
+       Ensure questions are clear and answers are concise and accurate.`
+    : `You are an expert educational assistant. Your task is to generate exactly ${count} multiple-choice questions from the provided content. 
+       Format your response as a JSON object with a key "items" which is an array of objects. 
+       Each object must have "question", "options" (array of 4 distinct strings), and "correctAnswer" (string, must exactly match one of the options).`;
 
   try {
-    let parts: any[] = [];
-    if (typeof content === 'string') {
-      parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this text:\n\n${content}` });
-    } else {
-      parts.push({ 
-        inlineData: {
-          mimeType: content.mimeType,
-          data: content.data
-        } 
-      });
-      parts.push({ text: `Create ${count} ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} from this document.` });
-    }
-
-    // Switched to 'gemini-3-flash-preview' for better free-tier availability and faster response times.
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: { parts },
-      config: {
-        systemInstruction,
-        responseMimeType: 'application/json',
-        responseSchema: mode === GenerationMode.FLASHCARDS ? flashcardSchema : quizSchema,
+    const response = await fetch("https://api.cerebras.ai/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${apiKey}`
       },
+      body: JSON.stringify({
+        model: "llama3.3-70b",
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: `Generate ${count} ${mode.toLowerCase()} based on this content: ${textInput}` }
+        ],
+        response_format: { type: "json_object" },
+        temperature: 0.7,
+        max_tokens: 2000
+      })
     });
 
-    // Access the .text property directly.
-    const responseText = response.text;
-    if (!responseText) {
-      throw new Error("No response text received from AI");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error?.message || `Cerebras API Error: ${response.status}`);
     }
 
-    const data = JSON.parse(responseText);
-    return data.map((item: any, index: number) => ({
+    const result = await response.json();
+    const contentString = result.choices[0].message.content;
+    
+    // Parse the structured JSON response
+    const jsonContent = JSON.parse(contentString);
+    const items = jsonContent.items || [];
+
+    return items.map((item: any, index: number) => ({
       ...item,
       id: `${Date.now()}-${index}`,
     })).slice(0, count);
+
   } catch (error) {
-    console.error("Gemini Generation Error:", error);
+    console.error("Cerebras Generation Error:", error);
     throw error;
   }
 }

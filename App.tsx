@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState(10);
   const [textInput, setTextInput] = useState('');
-  const [inputTab, setInputTab] = useState<'file' | 'text'>('file');
+  const [inputTab, setInputTab] = useState<'file' | 'text'>('text'); // Defaulting to text for Cerebras
   
   const pendingContent = useRef<string | { mimeType: string, data: string } | null>(null);
 
@@ -25,39 +25,30 @@ const App: React.FC = () => {
     setProgress(0);
     const interval = setInterval(() => {
       setProgress((prev) => {
-        if (prev >= 90) {
+        if (prev >= 95) {
           clearInterval(interval);
-          return 90;
+          return 95;
         }
-        return prev + 10;
+        return prev + 15; // Faster progress simulation for Cerebras
       });
-    }, 200);
+    }, 100);
     return interval;
   };
 
   const handleFileSelect = async (file: File) => {
     try {
-      let content: any;
       if (file.type.startsWith('image/')) {
-        const reader = new FileReader();
-        const base64Promise = new Promise<string>((resolve) => {
-          reader.onload = (e) => {
-            const result = e.target?.result as string;
-            resolve(result.split(',')[1]);
-          };
-        });
-        reader.readAsDataURL(file);
-        const base64Data = await base64Promise;
-        content = { mimeType: file.type, data: base64Data };
-      } else {
-        content = await file.text();
+        setErrorMsg("Image processing is currently disabled while using Cerebras Cloud. Please use text files or paste your notes directly.");
+        setState(AppState.ERROR);
+        return;
       }
       
+      const content = await file.text();
       pendingContent.current = content;
       setState(AppState.SELECTING_MODE);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to read file. Please try a different format.");
+      setErrorMsg("Failed to read file. Please ensure it's a valid text or PDF file.");
       setState(AppState.ERROR);
     }
   };
@@ -86,11 +77,11 @@ const App: React.FC = () => {
         setCurrentCardIndex(0);
         setState(AppState.VIEWING);
         pendingContent.current = null;
-      }, 500);
+      }, 300);
 
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setErrorMsg("Gemini AI failed to process the content. Please ensure the source has enough information to generate the requested number of items.");
+      setErrorMsg(err.message || "AI failed to process the content. Please try again with a shorter text snippet.");
       setState(AppState.ERROR);
       clearInterval(progressInterval);
     }
@@ -113,7 +104,7 @@ const App: React.FC = () => {
     doc.text(titleText, margin, margin);
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Generated on ${new Date().toLocaleDateString()}`, margin, margin + 6);
+    doc.text(`Generated on ${new Date().toLocaleDateString()} via Cerebras AI`, margin, margin + 6);
     
     let y = margin + 18;
     
@@ -212,6 +203,9 @@ const App: React.FC = () => {
           <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-blue-600 transition-all group-hover:scale-105">
             StudBud
           </h1>
+          <span className="hidden md:inline-block px-2 py-0.5 text-[8px] font-black bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded uppercase tracking-widest">
+            Cerebras Powered
+          </span>
         </div>
         
         <div className="flex items-center gap-4">
@@ -260,19 +254,10 @@ const App: React.FC = () => {
                 Welcome to <span className="text-cyan-500">StudBud</span>. <br/> Your AI Study Partner.
               </h2>
               <p className={`${subTextClass} text-lg md:text-xl max-w-xl mx-auto mb-14 font-medium opacity-90`}>
-                Upload notes or paste text to generate interactive flashcards and practice quizzes in seconds.
+                Powered by Cerebras ultra-fast Llama models. Generate interactive study sets in the blink of an eye.
               </p>
 
               <div className={`inline-flex p-1.5 rounded-[1.5rem] border mb-14 backdrop-blur-sm shadow-md transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-200 border-slate-300'}`}>
-                <button
-                  onClick={() => setInputTab('file')}
-                  className={`px-8 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-3 ${inputTab === 'file' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
-                >
-                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                  </svg>
-                  Source File
-                </button>
                 <button
                   onClick={() => setInputTab('text')}
                   className={`px-8 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-3 ${inputTab === 'text' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
@@ -282,12 +267,19 @@ const App: React.FC = () => {
                   </svg>
                   Custom Text
                 </button>
+                <button
+                  onClick={() => setInputTab('file')}
+                  className={`px-8 py-3 rounded-2xl text-sm font-black transition-all flex items-center gap-3 ${inputTab === 'file' ? 'bg-cyan-500 text-slate-950 shadow-xl' : 'text-slate-500 hover:text-slate-800 dark:hover:text-white'}`}
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                  </svg>
+                  Source File
+                </button>
               </div>
             </div>
 
-            {inputTab === 'file' ? (
-              <FileUpload onFileSelect={handleFileSelect} isLoading={false} theme={theme} />
-            ) : (
+            {inputTab === 'text' ? (
               <div className="w-full max-w-3xl flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
                 <textarea
                   value={textInput}
@@ -300,9 +292,11 @@ const App: React.FC = () => {
                   onClick={handleTextInputSubmit}
                   className="w-full py-5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-20 disabled:cursor-not-allowed text-slate-950 font-black rounded-[1.5rem] shadow-[0_20px_40px_rgba(34,211,238,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-4 text-xl"
                 >
-                  Generate Study Set
+                  Generate with Cerebras Speed
                 </button>
               </div>
+            ) : (
+              <FileUpload onFileSelect={handleFileSelect} isLoading={false} theme={theme} />
             )}
           </div>
         )}
@@ -360,12 +354,13 @@ const App: React.FC = () => {
           <div className="w-full max-w-md flex flex-col items-center gap-12 animate-in fade-in duration-500">
             <div className={`w-full h-3 rounded-full overflow-hidden shadow-inner ${theme === 'dark' ? 'bg-white/10' : 'bg-slate-200'}`}>
               <div 
-                className="h-full bg-gradient-to-r from-cyan-400 to-blue-600 transition-all duration-500 ease-out shadow-[0_0_30px_rgba(34,211,238,0.6)]"
+                className="h-full bg-gradient-to-r from-cyan-400 to-blue-600 transition-all duration-300 ease-out shadow-[0_0_30px_rgba(34,211,238,0.6)]"
                 style={{ width: `${progress}%` }}
               />
             </div>
             <div className="text-center">
-              <p className="text-cyan-500 font-black text-2xl mb-3 animate-pulse">Analyzing Content...</p>
+              <p className="text-cyan-500 font-black text-2xl mb-3 animate-pulse">Generating with Cerebras Speed...</p>
+              <p className={`${subTextClass} text-xs uppercase tracking-widest font-bold opacity-60`}>Inference powered by Llama-3.3-70b</p>
             </div>
           </div>
         )}
@@ -399,7 +394,7 @@ const App: React.FC = () => {
 
         {state === AppState.ERROR && (
           <div className="text-center max-w-lg animate-in fade-in zoom-in-95 duration-500 bg-red-500/5 p-14 rounded-[4rem] border border-red-500/20 shadow-2xl">
-            <h2 className="text-4xl font-black mb-5 tracking-tight">System Error</h2>
+            <h2 className="text-4xl font-black mb-5 tracking-tight text-red-500">System Error</h2>
             <p className={`${subTextClass} mb-12 font-bold text-lg leading-relaxed opacity-80`}>{errorMsg}</p>
             <button onClick={handleReset} className="w-full py-6 bg-slate-800 text-white hover:bg-slate-700 rounded-[2rem] font-black transition-all active:scale-95 shadow-2xl text-lg">Restart Session</button>
           </div>
@@ -407,7 +402,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className={`p-12 text-center text-[10px] font-black uppercase tracking-[0.4em] border-t transition-colors ${theme === 'dark' ? 'bg-slate-950/60 border-white/5 text-slate-700' : 'bg-white border-slate-200 text-slate-400'}`}>
-        &copy; {new Date().getFullYear()} StudBud &bull; High Fidelity AI Study Partner
+        &copy; {new Date().getFullYear()} StudBud &bull; High Fidelity AI Study Partner &bull; Cerebras Powered
       </footer>
     </div>
   );
