@@ -17,7 +17,7 @@ const App: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState(10);
   const [textInput, setTextInput] = useState('');
-  const [inputTab, setInputTab] = useState<'file' | 'text'>('text'); // Defaulting to text for Cerebras
+  const [inputTab, setInputTab] = useState<'file' | 'text'>('text');
   
   const pendingContent = useRef<string | { mimeType: string, data: string } | null>(null);
 
@@ -29,26 +29,32 @@ const App: React.FC = () => {
           clearInterval(interval);
           return 95;
         }
-        return prev + 15; // Faster progress simulation for Cerebras
+        return prev + 10; 
       });
-    }, 100);
+    }, 150);
     return interval;
   };
 
+  // Improved handleFileSelect to support images and PDFs for Gemini's multimodal capabilities
   const handleFileSelect = async (file: File) => {
     try {
-      if (file.type.startsWith('image/')) {
-        setErrorMsg("Image processing is currently disabled while using Cerebras Cloud. Please use text files or paste your notes directly.");
-        setState(AppState.ERROR);
-        return;
+      if (file.type.startsWith('image/') || file.type === 'application/pdf') {
+        const reader = new FileReader();
+        reader.onload = () => {
+          const result = reader.result as string;
+          const base64 = result.split(',')[1];
+          pendingContent.current = { mimeType: file.type, data: base64 };
+          setState(AppState.SELECTING_MODE);
+        };
+        reader.readAsDataURL(file);
+      } else {
+        const content = await file.text();
+        pendingContent.current = content;
+        setState(AppState.SELECTING_MODE);
       }
-      
-      const content = await file.text();
-      pendingContent.current = content;
-      setState(AppState.SELECTING_MODE);
     } catch (err) {
       console.error(err);
-      setErrorMsg("Failed to read file. Please ensure it's a valid text or PDF file.");
+      setErrorMsg("Failed to read file. Please ensure it's a valid text, image, or PDF file.");
       setState(AppState.ERROR);
     }
   };
@@ -104,7 +110,7 @@ const App: React.FC = () => {
     doc.text(titleText, margin, margin);
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Generated on ${new Date().toLocaleDateString()} via Cerebras AI`, margin, margin + 6);
+    doc.text(`Generated on ${new Date().toLocaleDateString()} via Gemini AI`, margin, margin + 6);
     
     let y = margin + 18;
     
@@ -204,7 +210,7 @@ const App: React.FC = () => {
             StudBud
           </h1>
           <span className="hidden md:inline-block px-2 py-0.5 text-[8px] font-black bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded uppercase tracking-widest">
-            Cerebras Powered
+            Gemini Powered
           </span>
         </div>
         
@@ -254,7 +260,7 @@ const App: React.FC = () => {
                 Welcome to <span className="text-cyan-500">StudBud</span>. <br/> Your AI Study Partner.
               </h2>
               <p className={`${subTextClass} text-lg md:text-xl max-w-xl mx-auto mb-14 font-medium opacity-90`}>
-                Powered by Cerebras ultra-fast Llama models. Generate interactive study sets in the blink of an eye.
+                Powered by Gemini models. Generate interactive study sets from text, images, or PDFs in the blink of an eye.
               </p>
 
               <div className={`inline-flex p-1.5 rounded-[1.5rem] border mb-14 backdrop-blur-sm shadow-md transition-all ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-200 border-slate-300'}`}>
@@ -292,7 +298,7 @@ const App: React.FC = () => {
                   onClick={handleTextInputSubmit}
                   className="w-full py-5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-20 disabled:cursor-not-allowed text-slate-950 font-black rounded-[1.5rem] shadow-[0_20px_40px_rgba(34,211,238,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-4 text-xl"
                 >
-                  Generate with Cerebras Speed
+                  Generate with Gemini
                 </button>
               </div>
             ) : (
@@ -359,8 +365,8 @@ const App: React.FC = () => {
               />
             </div>
             <div className="text-center">
-              <p className="text-cyan-500 font-black text-2xl mb-3 animate-pulse">Generating with Cerebras Speed...</p>
-              <p className={`${subTextClass} text-xs uppercase tracking-widest font-bold opacity-60`}>Inference powered by Llama-3.3-70b</p>
+              <p className="text-cyan-500 font-black text-2xl mb-3 animate-pulse">Generating with Gemini...</p>
+              <p className={`${subTextClass} text-xs uppercase tracking-widest font-bold opacity-60`}>Inference powered by Gemini-3-Flash</p>
             </div>
           </div>
         )}
@@ -402,7 +408,7 @@ const App: React.FC = () => {
       </main>
 
       <footer className={`p-12 text-center text-[10px] font-black uppercase tracking-[0.4em] border-t transition-colors ${theme === 'dark' ? 'bg-slate-950/60 border-white/5 text-slate-700' : 'bg-white border-slate-200 text-slate-400'}`}>
-        &copy; {new Date().getFullYear()} StudBud &bull; High Fidelity AI Study Partner &bull; Cerebras Powered
+        &copy; {new Date().getFullYear()} StudBud &bull; High Fidelity AI Study Partner &bull; Gemini Powered
       </footer>
     </div>
   );
