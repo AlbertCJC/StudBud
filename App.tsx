@@ -74,12 +74,10 @@ const App: React.FC = () => {
     setProgress(40);
 
     try {
-      // FIX: Pass the inputTab to the generation service to enable topic-based grounding.
       const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
-        questionCount,
-        inputTab
+        questionCount
       );
       setProgress(100);
       setTimeout(() => {
