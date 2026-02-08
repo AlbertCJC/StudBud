@@ -16,7 +16,7 @@ const TextInputArea: React.FC<TextInputAreaProps> = ({ value, onChange, onSubmit
       <textarea
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="Paste your notes here for instant Cerebras-powered generation..."
+        placeholder="Paste your notes here for instant AI-powered generation..."
         className={`w-full h-80 p-8 rounded-[2.5rem] border-2 border-dashed focus:border-cyan-500 focus:ring-8 focus:ring-cyan-500/5 outline-none transition-all resize-none font-medium text-lg ${inputBg}`}
       />
       <button 

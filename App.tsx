@@ -12,7 +12,7 @@ import TopicInputArea from './components/TopicInputArea';
 import ProcessingStatus from './components/ProcessingStatus';
 import StudyNavigator from './components/StudyNavigator';
 import InsufficientContentDialog from './components/InsufficientContentDialog';
-import { AppState, GenerationMode, InputTab } from './types';
+import { AppState, GenerationMode, InputTab, GroundingUrl } from './types';
 import { generateStudyMaterial } from './services/gemini';
 import { jsPDF } from 'jspdf';
 
@@ -21,6 +21,7 @@ const App: React.FC = () => {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
   const [mode, setMode] = useState<GenerationMode>(GenerationMode.FLASHCARDS);
   const [studyData, setStudyData] = useState<any[]>([]);
+  const [groundingUrls, setGroundingUrls] = useState<GroundingUrl[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [progress, setProgress] = useState(0);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -37,12 +38,10 @@ const App: React.FC = () => {
       if (file.size === 0) throw new Error("The selected file is empty.");
       const content = await file.text();
       
-      // Extraction Check: Need at least 100 characters of "meat"
       const cleanedContent = content.trim().replace(/\s+/g, ' ');
       const hasReadableText = /[a-zA-Z0-9]{100,}/.test(cleanedContent);
       
       if (!hasReadableText) {
-        // Fallback: If content is too short, we treat the file name or brief content as a topic search seed
         pendingContent.current = cleanedContent || file.name.split('.')[0];
         setState(AppState.INSUFFICIENT_CONTENT);
         return;
@@ -78,7 +77,8 @@ const App: React.FC = () => {
     setProgress(20);
 
     try {
-      const generatedData = await generateStudyMaterial(
+      // Fix: Destructure the updated response structure from generateStudyMaterial
+      const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
         questionCount, 
@@ -86,7 +86,8 @@ const App: React.FC = () => {
       );
       setProgress(100);
       setTimeout(() => {
-        setStudyData(generatedData);
+        setStudyData(items);
+        setGroundingUrls(urls);
         setCurrentCardIndex(0);
         setState(AppState.VIEWING);
       }, 200);
@@ -99,6 +100,7 @@ const App: React.FC = () => {
   const handleReset = () => {
     setState(AppState.IDLE);
     setStudyData([]);
+    setGroundingUrls([]);
     setErrorMsg(null);
     setTextInput('');
     setTopicInput('');
@@ -200,6 +202,29 @@ const App: React.FC = () => {
               onNext={() => setCurrentCardIndex(prev => Math.min(studyData.length - 1, prev + 1))}
               theme={theme}
             />
+
+            {/* Fix: Always display source URLs when Search Grounding is used, as required by Gemini rules */}
+            {groundingUrls && groundingUrls.length > 0 && (
+              <div className={`mt-14 p-8 rounded-[2.5rem] border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
+                <h4 className="text-xs font-black uppercase tracking-[0.2em] text-cyan-500 mb-6 flex items-center gap-2">
+                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-500"></span>
+                  Sources & Citations
+                </h4>
+                <div className="flex flex-wrap gap-4">
+                  {groundingUrls.map((link, i) => (
+                    <a 
+                      key={i} 
+                      href={link.uri} 
+                      target="_blank" 
+                      rel="noopener noreferrer" 
+                      className={`px-4 py-2 rounded-xl text-xs font-bold border transition-all hover:scale-105 ${theme === 'dark' ? 'bg-slate-800 border-white/5 text-slate-400 hover:text-cyan-400' : 'bg-white border-slate-200 text-slate-600 hover:text-cyan-600'}`}
+                    >
+                      {link.title}
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

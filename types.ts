@@ -12,6 +12,16 @@ export interface QuizData {
   correctAnswer: string;
 }
 
+export interface GroundingUrl {
+  title: string;
+  uri: string;
+}
+
+export interface StudyMaterialResponse {
+  items: any[];
+  groundingUrls: GroundingUrl[];
+}
+
 export enum GenerationMode {
   FLASHCARDS = 'FLASHCARDS',
   QUIZ = 'QUIZ'

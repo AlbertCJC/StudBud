@@ -22,8 +22,8 @@ const TopicInputArea: React.FC<TopicInputAreaProps> = ({ value, onChange, onSubm
           className={`w-full py-8 px-10 rounded-[2.5rem] border-2 focus:border-cyan-500 focus:ring-8 focus:ring-cyan-500/5 outline-none transition-all font-black text-2xl text-center shadow-inner ${inputBg}`}
           onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
         />
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-cyan-500 text-slate-950 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-          Web Search Grounded
+        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-cyan-400 border border-cyan-500/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
+          Gemini 3 Accelerated
         </div>
       </div>
       <button 
@@ -31,7 +31,7 @@ const TopicInputArea: React.FC<TopicInputAreaProps> = ({ value, onChange, onSubm
         onClick={onSubmit}
         className="w-64 py-5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-2xl shadow-xl transition-all active:scale-[0.98] disabled:opacity-20 flex items-center justify-center gap-2 text-xl"
       >
-        Start Research
+        Generate Set
       </button>
     </div>
   );

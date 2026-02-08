@@ -4,14 +4,13 @@ import react from '@vitejs/plugin-react';
 import process from 'node:process';
 
 export default defineConfig(({ mode }) => {
-  // Load env file based on `mode` in the current working directory.
-  // Explicitly importing 'process' from 'node:process' fixes the TypeScript error for 'cwd'.
+  // Use process.cwd() to get the current working directory safely
   const env = loadEnv(mode, process.cwd(), '');
   
   return {
     plugins: [react()],
     define: {
-      // Bridges the environment variable into the browser context
+      // Bridges the environment variable into the browser context using node process env
       'process.env.API_KEY': JSON.stringify(env.API_KEY || process.env.API_KEY)
     }
   };
