@@ -13,7 +13,7 @@ const Hero: React.FC<HeroProps> = ({ theme }) => {
         Your AI Study Partner.
       </h2>
       <p className={`text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-        Powered by <span className="text-cyan-500 font-bold">Google Gemini</span> technology. Generate interactive study sets from text, topics, or files using state-of-the-art inference with Gemini 3.
+        Powered by <span className="text-cyan-500 font-bold">Cerebras LPU</span> technology. Generate interactive study sets from text, topics, or files using world-record inference speeds with Llama 3.3.
       </p>
     </div>
   );

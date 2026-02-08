@@ -16,9 +16,9 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ progress, theme }) 
         />
       </div>
       <div className="text-center">
-        <p className="text-cyan-500 font-black text-2xl animate-pulse mb-2">Gemini 3 Processing</p>
+        <p className="text-cyan-500 font-black text-2xl animate-pulse mb-2">Cerebras LPU Speed</p>
         <p className={`text-xs uppercase tracking-widest font-bold opacity-50 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-          Inference powered by Gemini...
+          Instant inference powered by Llama 3.3...
         </p>
       </div>
     </div>
