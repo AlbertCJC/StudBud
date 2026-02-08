@@ -1,4 +1,3 @@
-
 # 🎓 StudBud - Cerebras LPU Powered Study Partner
 
 **StudBud** is a high-fidelity AI application designed to transform notes and topics into interactive flashcards and quizzes instantly. It is powered by the **Cerebras LPU (Language Processing Unit)**, providing the world's fastest inference speeds using Llama 3.3.
@@ -16,9 +15,9 @@
 ## 🛠️ Setup
 
 1. **Get an API Key**: Sign up at [cloud.cerebras.ai](https://cloud.cerebras.ai/).
-2. **Environment**: Add your key to `.env`:
+2. **Environment**: Create a `.env` file and add your key:
    ```env
-   API_KEY=csk-your_key_here
+   VITE_CEREBRAS_API_KEY=csk-your_key_here
    ```
 3. **Install & Run**:
    ```bash

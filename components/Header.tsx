@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 interface HeaderProps {
@@ -19,7 +18,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onReset, isViewing,
           StudBud
         </h1>
         <span className="hidden md:inline-block px-2 py-0.5 text-[8px] font-black bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded uppercase tracking-widest">
-          Llama 3.3 LPU
+          Llama 3.1 LPU
         </span>
       </div>
       
@@ -41,7 +40,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onReset, isViewing,
             </button>
             <button 
               onClick={onReset}
-              className={`px-5 py-2 rounded-full border text-sm font-bold transition-all active:scale-95 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-slate-200 hover:bg-slate-300 border-slate-300'}`}
+              className={`px-5 py-2 rounded-full border text-sm font-black transition-all active:scale-95 ${theme === 'dark' ? 'bg-white/5 hover:bg-white/10 border-white/10' : 'bg-slate-200 hover:bg-slate-300 border-slate-300'}`}
             >
               New
             </button>

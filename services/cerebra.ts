@@ -1,11 +1,10 @@
 
-// Use Google GenAI SDK as per the world-class engineer guidelines
-import { GoogleGenAI, Type } from "@google/genai";
+import { Cerebras } from "@cerebras/cerebras_cloud_sdk";
 import { GenerationMode, StudyMaterialResponse } from "../types";
 
 /**
- * Generates study materials using the Gemini API.
- * This service leverages Gemini 3 models for high-quality educational content generation.
+ * Generates study materials using the Cerebras Cloud SDK.
+ * This service leverages the ultra-fast Cerebras LPU for instant generation.
  */
 export async function generateStudyMaterial(
   content: string,
@@ -15,99 +14,105 @@ export async function generateStudyMaterial(
 ): Promise<StudyMaterialResponse> {
   
   const isFlashcards = mode === GenerationMode.FLASHCARDS;
-  
-  // The API key must be obtained exclusively from the environment variable process.env.API_KEY.
-  const apiKey = process.env.API_KEY;
-  if (!apiKey || apiKey === "undefined") {
-    throw new Error("API key is missing. Please check your environment configuration.");
+
+  // Vite requires the VITE_ prefix to expose environment variables to the client.
+  const apiKey = (import.meta.env.VITE_CEREBRAS_API_KEY || "").trim();
+
+  // Robust validation before client initialization
+  if (!apiKey) {
+    console.error("CRITICAL: Cerebras API key not found. Ensure VITE_CEREBRAS_API_KEY is set in your .env file.");
+    throw new Error("API authentication failed: Missing VITE_CEREBRAS_API_KEY. Please check your configuration.");
   }
 
-  // Create a new GoogleGenAI instance right before making an API call to ensure it uses the most up-to-date key.
-  const ai = new GoogleGenAI({ apiKey });
+  // Initialize the Cerebras SDK Client
+  const client = new Cerebras({
+    apiKey: apiKey
+  });
 
   const systemInstruction = `You are an expert educational content generator. 
-Generate exactly ${count} high-quality ${isFlashcards ? 'flashcards' : 'quiz questions'} based on the provided content.
+Your goal is to create exactly ${count} high-quality ${isFlashcards ? 'flashcards' : 'quiz questions'} based on the provided content.
 
 ${isFlashcards 
   ? `For each flashcard, provide a 'question' and an 'answer'.` 
   : `For each quiz question, provide a 'question', exactly 4 'options', and the 'correctAnswer' (which must be one of the options).`
 }
 
-Output MUST be a single JSON object.`;
+Output MUST be a single valid JSON object. 
+Format:
+{
+  "items": [
+    ${isFlashcards 
+      ? '{ "question": "Question text", "answer": "Answer text" }' 
+      : '{ "question": "Question text", "options": ["Option A", "Option B", "Option C", "Option D"], "correctAnswer": "The exactly matching correct option string" }'
+    }
+  ]
+}
 
-  // Define the response schema based on the generation mode to ensure deterministic JSON output.
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      items: {
-        type: Type.ARRAY,
-        items: {
-          type: Type.OBJECT,
-          properties: isFlashcards ? {
-            question: { type: Type.STRING },
-            answer: { type: Type.STRING },
-          } : {
-            question: { type: Type.STRING },
-            options: {
-              type: Type.ARRAY,
-              items: { type: Type.STRING }
-            },
-            correctAnswer: { type: Type.STRING },
-          },
-          propertyOrdering: isFlashcards ? ["question", "answer"] : ["question", "options", "correctAnswer"],
-        },
-      },
-    },
-    propertyOrdering: ["items"],
-  };
+IMPORTANT: 
+- Return ONLY the raw JSON object. 
+- NO markdown code blocks.
+- NO introductory or concluding text.`;
+  
+  // FIX: Explicitly type the messages array to narrow the 'role' property from 'string'
+  // to a union of literals ('system' | 'user'). This resolves the TypeScript error where
+  // the inferred type was too broad and failed to match the SDK's expected message types.
+  const messages: { role: "system" | "user"; content: string }[] = [
+    { role: "system", content: systemInstruction },
+    { role: "user", content: `Context content for generation (truncated to 30k chars): "${content.slice(0, 30000)}"` }
+  ];
 
   try {
-    // Generate content using Gemini 3 Pro for complex reasoning tasks.
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: `Context content: "${content.slice(0, 30000)}"`,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema,
-        temperature: 0.7,
-        // Only include googleSearch tool if explicitly requested for topic research.
-        tools: useSearch ? [{ googleSearch: {} }] : undefined,
-      },
+    const chatCompletion = await client.chat.completions.create({
+        messages,
+        model: "qwen-3-235b-a22b-instruct-2507", // Using model from user's provided snippet
+        temperature: 0.6,
+        max_tokens: 8192,
     });
 
-    const resultText = response.text;
+    const resultText = chatCompletion.choices?.[0]?.message?.content;
+
     if (!resultText) {
-      throw new Error("Gemini returned an empty response.");
+      throw new Error("The Cerebras LPU returned an empty or malformed response.");
     }
 
-    const data = JSON.parse(resultText);
+    let data;
+    try {
+      // The model might still wrap the response in markdown, so we'll clean it up.
+      const cleanedText = resultText.trim().replace(/^```json\n?/, '').replace(/```$/, '');
+      data = JSON.parse(cleanedText);
+    } catch (parseError) {
+      console.error("Failed to parse Cerebras JSON response:", resultText);
+      throw new Error("The AI generated an invalid JSON response. Please try again.");
+    }
+
     const items = (data.items || []).map((item: any, index: number) => ({
       ...item,
-      id: `gemini-${Date.now()}-${index}`,
+      id: `cerebra-${Date.now()}-${index}`,
     })).slice(0, count);
 
-    // Extract website URLs from grounding chunks if googleSearch was utilized.
-    const groundingUrls = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-      ?.filter((chunk: any) => chunk.web)
-      .map((chunk: any) => ({
-        title: chunk.web.title || 'Source',
-        uri: chunk.web.uri,
-      })) || [];
+    if (items.length === 0) {
+      throw new Error("The AI was unable to extract enough study items from the provided content.");
+    }
 
     return {
       items,
-      groundingUrls
+      groundingUrls: [] // Grounding is not implemented in this flow
     };
 
   } catch (error: any) {
-    console.error("Generation Error:", error);
-    
-    // Implement robust error handling as per guidelines.
-    if (error.status === 401) {
-      throw new Error("Authentication Failed. Please verify your API key.");
+    console.error("Cerebras Generation Failure:", error);
+    let errorMessage = "An unexpected error occurred during study material generation.";
+    // Handle potential structured errors from the SDK
+    if (error && typeof error === 'object') {
+        if ('status' in error && error.status === 401) {
+            errorMessage = "Authentication failed (401). Your Cerebras API key is invalid or lacks permission for the requested model.";
+        } else if ('status' in error && error.status === 429) {
+            errorMessage = "Rate limit exceeded (429). Please wait a moment before trying again.";
+        } else if ('message' in error && typeof error.message === 'string') {
+            errorMessage = error.message;
+        }
     }
-    
-    throw new Error(error.message || "An unexpected error occurred during study material generation.");
+    // Re-throw the error with a clean message for the UI
+    throw new Error(errorMessage);
   }
 }
