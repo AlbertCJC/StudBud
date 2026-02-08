@@ -15,6 +15,9 @@ import InsufficientContentDialog from './components/InsufficientContentDialog';
 import { AppState, GenerationMode, InputTab, GroundingUrl } from './types';
 import { generateStudyMaterial } from './services/cerebra';
 import { jsPDF } from 'jspdf';
+import * as pdfjsLib from 'pdfjs-dist';
+import mammoth from 'mammoth';
+import JSZip from 'jszip';
 
 const App: React.FC = () => {
   const [state, setState] = useState<AppState>(AppState.IDLE);
@@ -35,7 +38,63 @@ const App: React.FC = () => {
   const handleFileSelect = async (file: File) => {
     try {
       if (file.size === 0) throw new Error("The selected file is empty.");
-      const content = await file.text();
+
+      // Set worker source for pdf.js, required for it to work in this environment
+      pdfjsLib.GlobalWorkerOptions.workerSrc = new URL('pdfjs-dist/build/pdf.worker.mjs', import.meta.url).toString();
+
+      let content = '';
+      const fileType = file.type;
+      const fileName = file.name.toLowerCase();
+
+      if (fileType === 'application/pdf' || fileName.endsWith('.pdf')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const pdf = await pdfjsLib.getDocument(new Uint8Array(arrayBuffer)).promise;
+        const numPages = pdf.numPages;
+        let text = '';
+        for (let i = 1; i <= numPages; i++) {
+          const page = await pdf.getPage(i);
+          const textContent = await page.getTextContent();
+          text += textContent.items.map((item: any) => item.str).join(' ');
+        }
+        content = text;
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || fileName.endsWith('.docx')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const result = await mammoth.extractRawText({ arrayBuffer });
+        content = result.value;
+      } else if (fileType === 'application/vnd.openxmlformats-officedocument.presentationml.presentation' || fileName.endsWith('.pptx')) {
+        const zip = new JSZip();
+        const arrayBuffer = await file.arrayBuffer();
+        const loadedZip = await zip.loadAsync(arrayBuffer);
+        
+        const fullTextParts = [];
+        
+        const slideFiles = Object.keys(loadedZip.files).filter(fileName => 
+          fileName.startsWith('ppt/slides/slide') && fileName.endsWith('.xml')
+        ).sort((a, b) => {
+          const numA = parseInt(a.match(/slide(\d+)\.xml/)?.[1] || '0');
+          const numB = parseInt(b.match(/slide(\d+)\.xml/)?.[1] || '0');
+          return numA - numB;
+        });
+
+        for (const fileName of slideFiles) {
+          const slideXml = await loadedZip.files[fileName].async('string');
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(slideXml, 'text/xml');
+          const textNodes = xmlDoc.getElementsByTagName('a:t');
+          
+          let slideText = '';
+          for (let i = 0; i < textNodes.length; i++) {
+            slideText += textNodes[i].textContent + ' ';
+          }
+          fullTextParts.push(slideText.trim());
+        }
+        
+        content = fullTextParts.join('\n');
+      } else if (fileType.startsWith('text/')) {
+        content = await file.text();
+      } else {
+        throw new Error("Unsupported file type. Please upload a PDF, DOCX, PPTX, or TXT file.");
+      }
       
       const cleanedContent = content.trim().replace(/\s+/g, ' ');
       if (cleanedContent.length === 0) {
@@ -46,7 +105,8 @@ const App: React.FC = () => {
       pendingContent.current = cleanedContent;
       setState(AppState.SELECTING_MODE);
     } catch (err: any) {
-      setErrorMsg(err.message || "Failed to read file.");
+      const detailedError = `Failed to process ${file.name}. ${err.message || "An unknown error occurred."}`;
+      setErrorMsg(detailedError);
       setState(AppState.ERROR);
     }
   };

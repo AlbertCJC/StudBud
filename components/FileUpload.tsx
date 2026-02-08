@@ -61,7 +61,7 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isLoading, theme 
         ref={fileInputRef} 
         onChange={handleFileChange} 
         className="hidden" 
-        accept=".txt,.pdf,.png,.jpg,.jpeg,.docx" 
+        accept=".txt,.pdf,.docx,.pptx" 
       />
       
       <div className={`w-16 h-16 rounded-full flex items-center justify-center text-cyan-500 shadow-md border ${theme === 'dark' ? 'bg-slate-800 border-white/10' : 'bg-slate-50 border-slate-100'}`}>
@@ -72,13 +72,13 @@ const FileUpload: React.FC<FileUploadProps> = ({ onFileSelect, isLoading, theme 
 
       <div className="text-center">
         <h3 className="text-xl font-semibold mb-1">Upload Study Material</h3>
-        <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} text-sm`}>Drag and drop PDFs, docs, or images</p>
+        <p className={`${theme === 'dark' ? 'text-slate-400' : 'text-slate-500'} text-sm`}>Drag and drop a PDF, DOCX, PPTX, or TXT file</p>
       </div>
 
       <div className="flex gap-2 items-center text-xs text-slate-500 mt-4">
         <span className={`px-2 py-1 rounded border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>PDF</span>
-        <span className={`px-2 py-1 rounded border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>TEXT</span>
-        <span className={`px-2 py-1 rounded border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>IMAGES</span>
+        <span className={`px-2 py-1 rounded border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>DOCX</span>
+        <span className={`px-2 py-1 rounded border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>PPTX</span>
       </div>
     </div>
   );
