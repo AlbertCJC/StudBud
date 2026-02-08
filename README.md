@@ -1,6 +1,7 @@
+
 # 🎓 StudBud - Cerebras LPU Powered Study Partner
 
-**StudBud** is a high-fidelity AI application designed to transform notes and topics into interactive flashcards and quizzes instantly. It is powered by the **Cerebras LPU (Language Processing Unit)**, providing the world's fastest inference speeds using Llama 3.3.
+**StudBud** is a high-fidelity AI application designed to transform notes and topics into interactive flashcards and quizzes instantly. It is powered by the **Cerebras LPU (Language Processing Unit)**, providing the world's fastest inference speeds using Llama 3.1.
 
 ![StudBud](https://img.shields.io/badge/AI-Cerebras%20LPU-blue?style=for-the-badge)
 ![Speed](https://img.shields.io/badge/Inference-Instant-cyan?style=for-the-badge)

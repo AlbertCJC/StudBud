@@ -29,7 +29,6 @@ const App: React.FC = () => {
   const [textInput, setTextInput] = useState('');
   const [topicInput, setTopicInput] = useState('');
   const [inputTab, setInputTab] = useState<InputTab>('text');
-  const [isUsingSearch, setIsUsingSearch] = useState(false);
   
   const pendingContent = useRef<string | null>(null);
 
@@ -48,7 +47,6 @@ const App: React.FC = () => {
       }
 
       pendingContent.current = cleanedContent;
-      setIsUsingSearch(false);
       setState(AppState.SELECTING_MODE);
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to read file.");
@@ -59,14 +57,12 @@ const App: React.FC = () => {
   const handleTextInputSubmit = () => {
     if (!textInput.trim()) return;
     pendingContent.current = textInput;
-    setIsUsingSearch(false);
     setState(AppState.SELECTING_MODE);
   };
 
   const handleTopicSubmit = () => {
     if (!topicInput.trim()) return;
     pendingContent.current = topicInput;
-    setIsUsingSearch(false);
     setState(AppState.SELECTING_MODE);
   };
 
@@ -80,8 +76,7 @@ const App: React.FC = () => {
       const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
-        questionCount, 
-        isUsingSearch
+        questionCount
       );
       setProgress(100);
       setTimeout(() => {
@@ -91,7 +86,22 @@ const App: React.FC = () => {
         setState(AppState.VIEWING);
       }, 300);
     } catch (err: any) {
-      setErrorMsg(err.message || "Something went wrong during generation.");
+      const userMessage = err.message || "Something went wrong during generation.";
+      let debugInfo = '';
+
+      if (err.cause) {
+        const cause = err.cause;
+        try {
+          // Attempt to pretty-print the error cause if it's an object
+          debugInfo = JSON.stringify(cause, Object.getOwnPropertyNames(cause), 2);
+        } catch {
+          // Fallback for non-serializable objects
+          debugInfo = String(cause);
+        }
+      }
+      
+      const finalMessage = `${userMessage}\n\n--- RAW ERROR ---\n${debugInfo}`;
+      setErrorMsg(finalMessage);
       setState(AppState.ERROR);
     }
   };
@@ -103,7 +113,6 @@ const App: React.FC = () => {
     setErrorMsg(null);
     setTextInput('');
     setTopicInput('');
-    setIsUsingSearch(false);
     pendingContent.current = null;
   };
 
@@ -171,8 +180,6 @@ const App: React.FC = () => {
             theme={theme}
             onRetry={() => setState(AppState.IDLE)}
             onSearchInternet={() => {
-              // Fix: Correctly enable search grounding when researching on the internet.
-              setIsUsingSearch(true);
               setState(AppState.SELECTING_MODE);
             }}
           />
@@ -231,12 +238,14 @@ const App: React.FC = () => {
         )}
 
         {state === AppState.ERROR && (
-          <div className="text-center p-12 rounded-[4rem] border border-red-500/20 bg-red-500/5 max-w-lg shadow-2xl">
+          <div className="text-center p-8 md:p-12 rounded-[4rem] border border-red-500/20 bg-red-500/5 max-w-2xl w-full shadow-2xl">
             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mx-auto mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
             <h2 className="text-3xl font-black text-red-500 mb-4">Generation Error</h2>
-            <p className="text-slate-400 mb-8 font-medium">{errorMsg}</p>
+            <pre className="text-slate-400 mb-8 font-medium text-left text-xs bg-slate-900/50 p-4 rounded-xl overflow-x-auto max-h-80 no-scrollbar whitespace-pre-wrap">
+                <code>{errorMsg}</code>
+            </pre>
             <button onClick={handleReset} className="w-full py-4 bg-slate-800 text-white hover:bg-slate-700 rounded-2xl font-black transition-all active:scale-95">Return Home</button>
           </div>
         )}

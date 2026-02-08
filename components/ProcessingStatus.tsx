@@ -1,3 +1,4 @@
+
 import React from 'react';
 
 interface ProcessingStatusProps {
@@ -17,7 +18,7 @@ const ProcessingStatus: React.FC<ProcessingStatusProps> = ({ progress, theme }) 
       <div className="text-center">
         <p className="text-cyan-500 font-black text-2xl animate-pulse mb-2">Cerebras LPU Speed</p>
         <p className={`text-xs uppercase tracking-widest font-bold opacity-50 ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-          Instant inference powered by Llama 3.1...
+          Generating with Llama 3.1...
         </p>
       </div>
     </div>
