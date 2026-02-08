@@ -1,4 +1,4 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import OpenAI from "openai";
 import { GenerationMode, StudyMaterialResponse } from "../types";
 
 export async function generateStudyMaterial(
@@ -6,107 +6,79 @@ export async function generateStudyMaterial(
   mode: GenerationMode,
   count: number = 10
 ): Promise<StudyMaterialResponse> {
-  // FIX: Replaced Cerebras implementation with Google Gemini API as per guidelines.
-  // The API key is sourced from process.env.API_KEY as per strict instructions.
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
   const isFlashcards = mode === GenerationMode.FLASHCARDS;
 
-  const flashcardSchema = {
-    type: Type.OBJECT,
-    properties: {
-      question: { type: Type.STRING, description: "The question for the flashcard." },
-      answer: { type: Type.STRING, description: "The answer to the flashcard question." },
-    },
-    required: ['question', 'answer'],
-  };
+  // 1. UNIVERSAL API KEY EXTRACTION
+  // Checks both Vite (Client) and Node (Server) environments safely.
+  let apiKey = "";
+  try {
+    apiKey = (import.meta as any).env.VITE_CEREBRAS_API_KEY || "";
+  } catch (e) { /* Ignore Vite error in Node */ }
 
-  const quizSchema = {
-    type: Type.OBJECT,
-    properties: {
-      question: { type: Type.STRING, description: "The quiz question." },
-      options: {
-        type: Type.ARRAY,
-        description: "An array of exactly 4 potential answers.",
-        items: { type: Type.STRING },
-      },
-      correctAnswer: { type: Type.STRING, description: "The correct answer from the options array." },
-    },
-    required: ['question', 'options', 'correctAnswer'],
-  };
+  if (!apiKey && typeof process !== "undefined") {
+    apiKey = process.env.CEREBRAS_API_KEY || "";
+  }
+  
+  // Hardcoded Fallback (Only for your local testing in AI Studio)
+  // Replace the empty string below with your key if env vars fail
+  if (!apiKey) apiKey = ""; 
 
-  const responseSchema = {
-    type: Type.OBJECT,
-    properties: {
-      items: {
-        type: Type.ARRAY,
-        description: `An array of exactly ${count} study items.`,
-        items: isFlashcards ? flashcardSchema : quizSchema,
-      },
-    },
-    required: ['items'],
-  };
+  if (!apiKey) {
+    throw new Error("❌ API Key is missing. Please set VITE_CEREBRAS_API_KEY (Vite) or CEREBRAS_API_KEY (Node) in your .env file.");
+  }
+
+  // 2. INITIALIZE CLIENT (Per Cerebras Docs)
+  const client = new OpenAI({
+    apiKey: apiKey,
+    baseURL: "https://api.cerebras.ai/v1", // Required Base URL
+    dangerouslyAllowBrowser: true 
+  });
 
   const systemInstruction = `You are an expert educational content generator. 
 Your goal is to create exactly ${count} high-quality ${isFlashcards ? 'flashcards' : 'quiz questions'} based on the provided content.
 
 ${isFlashcards 
-  ? `For each flashcard, provide a 'question' and an 'answer'. The question should be concise and test a key concept. The answer should be clear and comprehensive.` 
-  : `For each quiz question, provide a 'question', an array of exactly 4 'options', and the 'correctAnswer'. The options should be plausible, with one clear correct answer.`
+  ? `For each flashcard, provide a 'question' and an 'answer'.` 
+  : `For each quiz question, provide a 'question', exactly 4 'options', and the 'correctAnswer'.`
 }
 
-Analyze the provided context and extract the most important information to create the study materials.`;
-
-  // Heuristic to determine if the input is a topic that requires web search.
-  const isTopicSearch = content.length < 200;
+Output MUST be a single valid JSON object. Format: { "items": [ ... ] }`;
 
   try {
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview", // A good default for text tasks
-      contents: `Context: "${content.slice(0, 30000)}"`,
-      config: {
-        systemInstruction,
-        responseMimeType: "application/json",
-        responseSchema,
-        temperature: 0.5,
-        tools: isTopicSearch ? [{googleSearch: {}}] : undefined,
-      },
+    const response = await client.chat.completions.create({
+      // 3. MODEL SELECTION (Critical Fix)
+      // According to docs, valid IDs are: "llama-3.3-70b" (Recommended) or "llama3.1-8b" (Fastest)
+      model: "llama-3.3-70b", 
+      messages: [
+        { role: "system", content: systemInstruction },
+        { role: "user", content: `Context: "${content.slice(0, 30000)}"` }
+      ],
+      response_format: { type: "json_object" }, // Supported by Llama 3.x
+      temperature: 0.6,
+      max_tokens: 8192,
     });
 
-    const resultText = response.text;
-    if (!resultText) throw new Error("Empty response from Gemini.");
+    const resultText = response.choices[0]?.message?.content;
+    if (!resultText) throw new Error("Empty response from Cerebras.");
 
-    // The Gemini API returns a string that needs to be parsed.
     const data = JSON.parse(resultText);
     
     const items = (data.items || []).map((item: any, index: number) => ({
       ...item,
-      id: `gemini-${Date.now()}-${index}`,
+      id: `cerebra-${Date.now()}-${index}`,
     })).slice(0, count);
 
-    if (items.length === 0) {
-      throw new Error("The AI was unable to extract enough study items from the provided content.");
-    }
-    
-    const groundingUrls = response.candidates?.[0]?.groundingMetadata?.groundingChunks
-      ?.map((chunk: any) => {
-        if (chunk.web) {
-          return { title: chunk.web.title || chunk.web.uri, uri: chunk.web.uri };
-        }
-        return null;
-      })
-      .filter((url): url is { title: string; uri: string } => url !== null) || [];
-
-    return {
-      items,
-      groundingUrls,
-    };
+    return { items, groundingUrls: [] };
 
   } catch (error: any) {
-    console.error("Gemini API Error:", error);
-    const message = error.message || "Failed to generate study materials.";
-    const enhancedError = new Error(message);
-    (enhancedError as any).cause = error.cause || error;
-    throw enhancedError;
+    console.error("Cerebras API Error:", error);
+    
+    // Documentation-specific error handling
+    if (error.status === 404) {
+       throw new Error(`Model not found (404). 'llama-3.3-70b' or 'llama3.1-8b' are the currently supported model IDs.`);
+    }
+
+    throw new Error(error.message || "Failed to generate study materials.");
   }
 }

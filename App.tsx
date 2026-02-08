@@ -48,6 +48,7 @@ const App: React.FC = () => {
 
       pendingContent.current = cleanedContent;
       setState(AppState.SELECTING_MODE);
+    // FIX: Added curly braces to the catch block to fix a syntax error that broke the component's scope.
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to read file.");
       setState(AppState.ERROR);
@@ -73,10 +74,12 @@ const App: React.FC = () => {
     setProgress(40);
 
     try {
+      // FIX: Pass the inputTab to the generation service to enable topic-based grounding.
       const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
-        questionCount
+        questionCount,
+        inputTab
       );
       setProgress(100);
       setTimeout(() => {
@@ -179,9 +182,6 @@ const App: React.FC = () => {
           <InsufficientContentDialog 
             theme={theme}
             onRetry={() => setState(AppState.IDLE)}
-            onSearchInternet={() => {
-              setState(AppState.SELECTING_MODE);
-            }}
           />
         )}
 

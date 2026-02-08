@@ -4,10 +4,9 @@ import React from 'react';
 interface InsufficientContentDialogProps {
   theme: 'dark' | 'light';
   onRetry: () => void;
-  onSearchInternet: () => void;
 }
 
-const InsufficientContentDialog: React.FC<InsufficientContentDialogProps> = ({ theme, onRetry, onSearchInternet }) => {
+const InsufficientContentDialog: React.FC<InsufficientContentDialogProps> = ({ theme, onRetry }) => {
   const cardBg = theme === 'dark' ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200';
   
   return (
@@ -19,20 +18,14 @@ const InsufficientContentDialog: React.FC<InsufficientContentDialogProps> = ({ t
       </div>
       <h2 className="text-3xl font-black mb-4 tracking-tighter">Not Enough Intel</h2>
       <p className={`mb-10 font-medium leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-        The content provided is too brief to generate a quality study set. Would you like StudBud to research this topic on the internet instead?
+        The content provided is too brief to generate a quality study set. Please try again with more detailed content.
       </p>
       <div className="flex flex-col gap-4">
-        <button 
-          onClick={onSearchInternet}
-          className="w-full py-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-2xl shadow-lg transition-all active:scale-95"
-        >
-          Yes, Research on Internet
-        </button>
         <button 
           onClick={onRetry}
           className={`w-full py-4 border font-black rounded-2xl transition-all active:scale-95 ${theme === 'dark' ? 'bg-white/5 border-white/10 hover:bg-white/10' : 'bg-slate-100 border-slate-200 hover:bg-slate-200'}`}
         >
-          Try a Different File
+          Try Again
         </button>
       </div>
     </div>
