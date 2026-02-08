@@ -38,17 +38,13 @@ const App: React.FC = () => {
       const content = await file.text();
       
       const cleanedContent = content.trim().replace(/\s+/g, ' ');
-      const hasReadableText = /[a-zA-Z0-9]{100,}/.test(cleanedContent);
-      
-      if (!hasReadableText) {
-        pendingContent.current = cleanedContent || file.name.split('.')[0];
+      if (cleanedContent.length === 0) {
         setState(AppState.INSUFFICIENT_CONTENT);
         return;
       }
 
       pendingContent.current = cleanedContent;
       setState(AppState.SELECTING_MODE);
-    // FIX: Added curly braces to the catch block to fix a syntax error that broke the component's scope.
     } catch (err: any) {
       setErrorMsg(err.message || "Failed to read file.");
       setState(AppState.ERROR);
@@ -122,10 +118,36 @@ const App: React.FC = () => {
     doc.setFontSize(20);
     doc.text(mode === GenerationMode.FLASHCARDS ? "Study Flashcards" : "Practice Quiz", 10, 20);
     doc.setFontSize(12);
+
+    let yPos = 40;
+    const pageHeight = doc.internal.pageSize.height;
+    const margin = 10;
+    const questionSpacing = 12;
+    const answerIndent = 15;
+    const contentWidth = doc.internal.pageSize.width - margin * 2;
+    const answerContentWidth = contentWidth - (answerIndent - margin);
+
     studyData.forEach((item, i) => {
-      const yPos = 40 + (i * 20);
-      doc.text(`${i+1}. ${item.question}`, 10, yPos);
+      const questionText = `${i + 1}. ${item.question}`;
+      const answer = mode === GenerationMode.FLASHCARDS ? item.answer : item.correctAnswer;
+      const answerText = `Answer: ${answer}`;
+      
+      const wrappedQuestion = doc.splitTextToSize(questionText, contentWidth);
+      const wrappedAnswer = doc.splitTextToSize(answerText, answerContentWidth);
+      const requiredHeight = (wrappedQuestion.length + wrappedAnswer.length) * 7 + questionSpacing;
+      
+      if (yPos + requiredHeight > pageHeight - margin) {
+        doc.addPage();
+        yPos = margin + 10; // Add top margin for new page
+      }
+      
+      doc.text(wrappedQuestion, margin, yPos);
+      yPos += (wrappedQuestion.length * 7);
+
+      doc.text(wrappedAnswer, answerIndent, yPos);
+      yPos += (wrappedAnswer.length * 7) + questionSpacing;
     });
+
     doc.save(`StudBud-Export.pdf`);
   };
 
