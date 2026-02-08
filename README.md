@@ -1,65 +1,30 @@
 
-# 🎓 StudBud - High-Performance AI Study Partner
+# 🎓 StudBud - Cerebras LPU Powered Study Partner
 
-**StudBud** is a modern, high-fidelity web application designed to transform your study materials into interactive flashcards and practice quizzes in seconds. Powered by the **Cerebras LPU (Language Processing Unit)**, it offers the world's fastest inference for intelligent, context-aware content generation.
+**StudBud** is a high-fidelity AI application designed to transform notes and topics into interactive flashcards and quizzes instantly. It is powered by the **Cerebras LPU (Language Processing Unit)**, providing the world's fastest inference speeds using Llama 3.3.
 
-![StudBud Dark Mode](https://img.shields.io/badge/Theme-Dark%20%2F%20Light-cyan)
-![Powered by Cerebras](https://img.shields.io/badge/AI-Cerebras%20LPU-blue)
-![React 19](https://img.shields.io/badge/React-19.0-61dafb)
+![StudBud](https://img.shields.io/badge/AI-Cerebras%20LPU-blue?style=for-the-badge)
+![Speed](https://img.shields.io/badge/Inference-Instant-cyan?style=for-the-badge)
 
 ## ✨ Features
 
-- **🚀 Instant Generation**: Leverages Cerebras LPU technology for record-breaking inference speeds (tokens per second).
-- **📇 Dual Study Modes**: 
-  - **Flashcards**: Interactive cards with a sleek 3D flip animation for concept mastery.
-  - **Practice Quizzes**: Multiple-choice questions with real-time feedback and grading.
-- **📄 Multimodal Input**: Support for raw text pasting, topic generation, and file uploads.
-- **🌗 Sleek UI/UX**: A minimalist design featuring neon cyan accents, custom animations, and a seamless toggle between Dark and Light modes.
-- **📥 PDF Export**: Save your generated study sets locally for offline review.
+- **🚀 LPU Accelerated**: Leverages Cerebras hardware for near-instant generation.
+- **📇 Study Modes**: Toggle between 3D animated flashcards and interactive quizzes.
+- **📄 Multimodal**: Paste text, upload files, or just provide a topic.
+- **🌗 Dark Mode**: Neon cyan minimalist interface designed for focus.
 
-## 🛠️ Technology Stack
+## 🛠️ Setup
 
-- **Frontend**: [React 19](https://react.dev/), [TypeScript](https://www.typescriptlang.org/)
-- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
-- **Inference**: [Cerebras Cloud API](https://cerebras.ai/) (Llama 3.3 70B)
-- **PDF Engine**: [jsPDF](https://github.com/parallax/jsPDF)
-- **Build Tool**: [Vite](https://vitejs.dev/)
-
-## 🚀 Getting Started
-
-### Prerequisites
-
-- Node.js (v18+)
-- A Cerebras Cloud API Key (Get one at [cloud.cerebras.ai](https://cloud.cerebras.ai/))
-
-### Installation
-
-1. **Clone the repository**:
-   ```bash
-   git clone https://github.com/your-username/studbud.git
-   cd studbud
+1. **Get an API Key**: Sign up at [cloud.cerebras.ai](https://cloud.cerebras.ai/).
+2. **Environment**: Add your key to `.env`:
+   ```env
+   API_KEY=csk-your_key_here
    ```
-
-2. **Install dependencies**:
+3. **Install & Run**:
    ```bash
    npm install
-   ```
-
-3. **Configure environment variables**:
-   Create a `.env` file in the root directory:
-   ```env
-   API_KEY=your_cerebras_api_key_here
-   ```
-
-4. **Run the development server**:
-   ```bash
    npm run dev
    ```
 
 ## 📄 License
-
-Distributed under the MIT License.
-
----
-
-*Happy Studying! Built with ⚡ by the StudBud Team.*
+MIT

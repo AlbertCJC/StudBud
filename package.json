@@ -1,8 +1,8 @@
 
 {
-  "name": "studbud",
+  "name": "studbud-cerebras",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -12,7 +12,6 @@
   "dependencies": {
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "@google/genai": "^1.40.0",
     "jspdf": "^2.5.1"
   },
   "devDependencies": {

@@ -13,7 +13,7 @@ import ProcessingStatus from './components/ProcessingStatus';
 import StudyNavigator from './components/StudyNavigator';
 import InsufficientContentDialog from './components/InsufficientContentDialog';
 import { AppState, GenerationMode, InputTab, GroundingUrl } from './types';
-import { generateStudyMaterial } from './services/gemini';
+import { generateStudyMaterial } from './services/cerebra';
 import { jsPDF } from 'jspdf';
 
 const App: React.FC = () => {
@@ -77,7 +77,6 @@ const App: React.FC = () => {
     setProgress(20);
 
     try {
-      // Fix: Destructure the updated response structure from generateStudyMaterial
       const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
@@ -92,7 +91,7 @@ const App: React.FC = () => {
         setState(AppState.VIEWING);
       }, 200);
     } catch (err: any) {
-      setErrorMsg(err.message || "Something went wrong.");
+      setErrorMsg(err.message || "Something went wrong during Cerebras generation.");
       setState(AppState.ERROR);
     }
   };
@@ -203,7 +202,6 @@ const App: React.FC = () => {
               theme={theme}
             />
 
-            {/* Fix: Always display source URLs when Search Grounding is used, as required by Gemini rules */}
             {groundingUrls && groundingUrls.length > 0 && (
               <div className={`mt-14 p-8 rounded-[2.5rem] border ${theme === 'dark' ? 'bg-white/5 border-white/10' : 'bg-slate-100 border-slate-200'}`}>
                 <h4 className="text-xs font-black uppercase tracking-[0.2em] text-cyan-500 mb-6 flex items-center gap-2">
