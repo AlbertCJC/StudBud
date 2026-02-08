@@ -23,5 +23,8 @@ export enum AppState {
   UPLOADING = 'UPLOADING',
   PROCESSING = 'PROCESSING',
   VIEWING = 'VIEWING',
-  ERROR = 'ERROR'
+  ERROR = 'ERROR',
+  INSUFFICIENT_CONTENT = 'INSUFFICIENT_CONTENT'
 }
+
+export type InputTab = 'text' | 'file' | 'topic';

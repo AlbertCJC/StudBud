@@ -8,9 +8,11 @@ import QuizCard from './components/QuizCard';
 import Hero from './components/Hero';
 import InputToggle from './components/InputToggle';
 import TextInputArea from './components/TextInputArea';
+import TopicInputArea from './components/TopicInputArea';
 import ProcessingStatus from './components/ProcessingStatus';
 import StudyNavigator from './components/StudyNavigator';
-import { AppState, GenerationMode } from './types';
+import InsufficientContentDialog from './components/InsufficientContentDialog';
+import { AppState, GenerationMode, InputTab } from './types';
 import { generateStudyMaterial } from './services/gemini';
 import { jsPDF } from 'jspdf';
 
@@ -24,17 +26,33 @@ const App: React.FC = () => {
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [questionCount, setQuestionCount] = useState(10);
   const [textInput, setTextInput] = useState('');
-  const [inputTab, setInputTab] = useState<'file' | 'text'>('text');
+  const [topicInput, setTopicInput] = useState('');
+  const [inputTab, setInputTab] = useState<InputTab>('text');
+  const [isUsingSearch, setIsUsingSearch] = useState(false);
   
-  const pendingContent = useRef<string | { mimeType: string, data: string } | null>(null);
+  const pendingContent = useRef<string | null>(null);
 
   const handleFileSelect = async (file: File) => {
     try {
+      if (file.size === 0) throw new Error("The selected file is empty.");
       const content = await file.text();
-      pendingContent.current = content;
+      
+      // Extraction Check: Need at least 100 characters of "meat"
+      const cleanedContent = content.trim().replace(/\s+/g, ' ');
+      const hasReadableText = /[a-zA-Z0-9]{100,}/.test(cleanedContent);
+      
+      if (!hasReadableText) {
+        // Fallback: If content is too short, we treat the file name or brief content as a topic search seed
+        pendingContent.current = cleanedContent || file.name.split('.')[0];
+        setState(AppState.INSUFFICIENT_CONTENT);
+        return;
+      }
+
+      pendingContent.current = cleanedContent;
+      setIsUsingSearch(false);
       setState(AppState.SELECTING_MODE);
-    } catch (err) {
-      setErrorMsg("Failed to read file. Please ensure it is a valid text file.");
+    } catch (err: any) {
+      setErrorMsg(err.message || "Failed to read file.");
       setState(AppState.ERROR);
     }
   };
@@ -42,6 +60,14 @@ const App: React.FC = () => {
   const handleTextInputSubmit = () => {
     if (!textInput.trim()) return;
     pendingContent.current = textInput;
+    setIsUsingSearch(false);
+    setState(AppState.SELECTING_MODE);
+  };
+
+  const handleTopicSubmit = () => {
+    if (!topicInput.trim()) return;
+    pendingContent.current = topicInput;
+    setIsUsingSearch(true);
     setState(AppState.SELECTING_MODE);
   };
 
@@ -52,7 +78,12 @@ const App: React.FC = () => {
     setProgress(20);
 
     try {
-      const generatedData = await generateStudyMaterial(pendingContent.current, selectedMode, questionCount);
+      const generatedData = await generateStudyMaterial(
+        pendingContent.current, 
+        selectedMode, 
+        questionCount, 
+        isUsingSearch
+      );
       setProgress(100);
       setTimeout(() => {
         setStudyData(generatedData);
@@ -70,6 +101,8 @@ const App: React.FC = () => {
     setStudyData([]);
     setErrorMsg(null);
     setTextInput('');
+    setTopicInput('');
+    setIsUsingSearch(false);
     pendingContent.current = null;
   };
 
@@ -106,18 +139,38 @@ const App: React.FC = () => {
             />
 
             <div className="w-full flex justify-center">
-              {inputTab === 'text' ? (
+              {inputTab === 'text' && (
                 <TextInputArea 
                   value={textInput} 
                   onChange={setTextInput} 
                   onSubmit={handleTextInputSubmit} 
                   theme={theme} 
                 />
-              ) : (
+              )}
+              {inputTab === 'file' && (
                 <FileUpload onFileSelect={handleFileSelect} isLoading={false} theme={theme} />
+              )}
+              {inputTab === 'topic' && (
+                <TopicInputArea 
+                  value={topicInput} 
+                  onChange={setTopicInput} 
+                  onSubmit={handleTopicSubmit} 
+                  theme={theme} 
+                />
               )}
             </div>
           </div>
+        )}
+
+        {state === AppState.INSUFFICIENT_CONTENT && (
+          <InsufficientContentDialog 
+            theme={theme}
+            onRetry={() => setState(AppState.IDLE)}
+            onSearchInternet={() => {
+              setIsUsingSearch(true);
+              setState(AppState.SELECTING_MODE);
+            }}
+          />
         )}
 
         {state === AppState.SELECTING_MODE && (
