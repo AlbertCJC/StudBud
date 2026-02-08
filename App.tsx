@@ -66,6 +66,7 @@ const App: React.FC = () => {
   const handleTopicSubmit = () => {
     if (!topicInput.trim()) return;
     pendingContent.current = topicInput;
+    // Enable Search Grounding for topic-based research to fetch live information.
     setIsUsingSearch(true);
     setState(AppState.SELECTING_MODE);
   };
@@ -74,7 +75,7 @@ const App: React.FC = () => {
     if (!pendingContent.current) return;
     setMode(selectedMode);
     setState(AppState.PROCESSING);
-    setProgress(20);
+    setProgress(35);
 
     try {
       const { items, groundingUrls: urls } = await generateStudyMaterial(
@@ -89,9 +90,9 @@ const App: React.FC = () => {
         setGroundingUrls(urls);
         setCurrentCardIndex(0);
         setState(AppState.VIEWING);
-      }, 200);
+      }, 300);
     } catch (err: any) {
-      setErrorMsg(err.message || "Something went wrong during Cerebras generation.");
+      setErrorMsg(err.message || "Something went wrong during Gemini inference.");
       setState(AppState.ERROR);
     }
   };
@@ -109,11 +110,14 @@ const App: React.FC = () => {
 
   const downloadPDF = () => {
     const doc = new jsPDF();
-    doc.text(mode === GenerationMode.FLASHCARDS ? "Flashcards" : "Quiz", 10, 10);
+    doc.setFontSize(20);
+    doc.text(mode === GenerationMode.FLASHCARDS ? "Study Flashcards" : "Practice Quiz", 10, 20);
+    doc.setFontSize(12);
     studyData.forEach((item, i) => {
-      doc.text(`${i+1}. ${item.question}`, 10, 20 + (i * 15));
+      const yPos = 40 + (i * 20);
+      doc.text(`${i+1}. ${item.question}`, 10, yPos);
     });
-    doc.save(`study-material.pdf`);
+    doc.save(`StudBud-Export.pdf`);
   };
 
   const bgClass = theme === 'dark' ? 'bg-[#020617] text-slate-100' : 'bg-slate-50 text-slate-900';
@@ -168,7 +172,7 @@ const App: React.FC = () => {
             theme={theme}
             onRetry={() => setState(AppState.IDLE)}
             onSearchInternet={() => {
-              setIsUsingSearch(true);
+              setIsUsingSearch(true); // Switch to search research mode using Gemini.
               setState(AppState.SELECTING_MODE);
             }}
           />
@@ -231,7 +235,7 @@ const App: React.FC = () => {
             <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mx-auto mb-6">
               <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
             </div>
-            <h2 className="text-3xl font-black text-red-500 mb-4">Generation Failed</h2>
+            <h2 className="text-3xl font-black text-red-500 mb-4">Inference Error</h2>
             <p className="text-slate-400 mb-8 font-medium">{errorMsg}</p>
             <button onClick={handleReset} className="w-full py-4 bg-slate-800 text-white hover:bg-slate-700 rounded-2xl font-black transition-all active:scale-95">Return Home</button>
           </div>

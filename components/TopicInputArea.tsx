@@ -23,7 +23,7 @@ const TopicInputArea: React.FC<TopicInputAreaProps> = ({ value, onChange, onSubm
           onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
         />
         <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-cyan-400 border border-cyan-500/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-          Powered by Cerebras
+          Powered by Gemini
         </div>
       </div>
       <button 

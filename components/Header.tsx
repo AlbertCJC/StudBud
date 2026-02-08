@@ -19,7 +19,7 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onReset, isViewing,
           StudBud
         </h1>
         <span className="hidden md:inline-block px-2 py-0.5 text-[8px] font-black bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded uppercase tracking-widest">
-          Cerebras LPU
+          Gemini 3
         </span>
       </div>
       

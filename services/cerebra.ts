@@ -1,19 +1,11 @@
 
-import Cerebras from '@cerebras/cerebras_cloud_sdk';
+import { GoogleGenAI, Type } from "@google/genai";
 import { GenerationMode, StudyMaterialResponse } from "../types";
 
-// Retrieve and validate the API key at the module level
-// Using casting to any to avoid strict process.env typing issues if they persist
-const apiKey = (String((process.env as any)['CEREBRAS_API_KEY'] || (process.env as any)['API_KEY'] || "")).trim();
-
-// Initialize the client as a singleton following the suggested pattern
-const client = new Cerebras({
-  apiKey: apiKey,
-});
-
 /**
- * Generates study materials using the official Cerebras Cloud SDK.
- * Leveraging the high-speed LPU backend for near-instant Llama 3.3 generation.
+ * Generates study materials using the Google Gemini API.
+ * This service leverages the Gemini 3 Flash model for high-quality, efficient generation
+ * with support for structured JSON output and optional Google Search grounding.
  */
 export async function generateStudyMaterial(
   content: string,
@@ -22,66 +14,100 @@ export async function generateStudyMaterial(
   useSearch: boolean = false
 ): Promise<StudyMaterialResponse> {
   
-  // Runtime check for API key presence
-  if (!apiKey || apiKey === "undefined" || apiKey === "null") {
-    throw new Error("Cerebras API key is missing. Please check your environment variables and ensure CEREBRAS_API_KEY is set correctly.");
-  }
-
-  const systemInstruction = `You are a specialized educational assistant. 
-  Generate exactly ${count} high-quality ${mode === GenerationMode.FLASHCARDS ? 'flashcards' : 'quiz questions'} based on the provided content.
+  // Initialize the Gemini API client. 
+  // We create a new instance right before the call to ensure the latest environment config is used.
+  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
-  IMPORTANT: You must return valid JSON in this exact structure:
-  {
-    "items": [
-      ${mode === GenerationMode.FLASHCARDS 
-        ? '{ "question": "Front of card", "answer": "Back of card" }' 
-        : '{ "question": "Question text", "options": ["Choice A", "Choice B", "Choice C", "Choice D"], "correctAnswer": "Exact matching string from options" }'
-      }
-    ]
-  }
+  const isFlashcards = mode === GenerationMode.FLASHCARDS;
+  
+  // Define the JSON response schema for structured output to ensure consistency in generated data.
+  const schema = isFlashcards ? {
+    type: Type.OBJECT,
+    properties: {
+      items: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            answer: { type: Type.STRING },
+          },
+          required: ["question", "answer"],
+        },
+      },
+    },
+    required: ["items"],
+  } : {
+    type: Type.OBJECT,
+    properties: {
+      items: {
+        type: Type.ARRAY,
+        items: {
+          type: Type.OBJECT,
+          properties: {
+            question: { type: Type.STRING },
+            options: {
+              type: Type.ARRAY,
+              items: { type: Type.STRING },
+            },
+            correctAnswer: { type: Type.STRING },
+          },
+          required: ["question", "options", "correctAnswer"],
+        },
+      },
+    },
+    required: ["items"],
+  };
 
-  Focus on factual accuracy, academic clarity, and helpfulness.`;
-
-  const userPrompt = `Context for study material generation: "${content.slice(0, 28000)}"`;
+  const systemInstruction = `You are an expert educational content generator. 
+Generate exactly ${count} high-quality ${isFlashcards ? 'flashcards' : 'quiz questions'} based on the provided content.
+${!isFlashcards ? 'For each quiz question, provide exactly 4 options and the correctAnswer must be one of them.' : ''}
+Return the items in the requested JSON format.`;
 
   try {
-    const response = await client.chat.completions.create({
-      model: "llama-3.3-70b",
-      messages: [
-        { role: "system", content: systemInstruction },
-        { role: "user", content: userPrompt }
-      ],
-      // Use JSON object response format for guaranteed structural integrity
-      response_format: { type: "json_object" },
-      temperature: 0.6,
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: `Context content for generation: "${content.slice(0, 30000)}"`,
+      config: {
+        systemInstruction,
+        responseMimeType: "application/json",
+        responseSchema: schema,
+        // Integrate Google Search grounding if research mode is enabled.
+        tools: useSearch ? [{ googleSearch: {} }] : undefined,
+      },
     });
 
-    const jsonStr = response.choices[0]?.message?.content;
-    
-    if (!jsonStr) {
-      throw new Error("Cerebras LPU returned an empty response. Please try again.");
+    const resultText = response.text;
+    if (!resultText) {
+      throw new Error("Gemini returned an empty response.");
     }
 
-    const data = JSON.parse(jsonStr);
-    
+    const data = JSON.parse(resultText);
     const items = (data.items || []).map((item: any, index: number) => ({
       ...item,
-      id: `cerebra-${Date.now()}-${index}`,
+      id: `gemini-${Date.now()}-${index}`,
     })).slice(0, count);
 
-    // Return the generated items.
-    return { items, groundingUrls: [] };
+    // Extract grounding URLs from metadata if Google Search was utilized during generation.
+    const groundingUrls = response.candidates?.[0]?.groundingMetadata?.groundingChunks
+      ?.filter((chunk: any) => chunk.web)
+      ?.map((chunk: any) => ({
+        title: chunk.web.title || "Source",
+        uri: chunk.web.uri,
+      })) || [];
+
+    return {
+      items,
+      groundingUrls,
+    };
 
   } catch (error: any) {
-    console.error("Cerebras SDK Error:", error);
+    console.error("Gemini Inference Error:", error);
     
-    // Provide actionable feedback for common authentication and rate limit errors
     if (error.status === 401) {
-      throw new Error("Cerebras Authentication Failed (401): The provided API key is incorrect or invalid. Verify your environment variables.");
-    } else if (error.status === 429) {
-      throw new Error("Cerebras Rate Limit Exceeded (429): Too many requests. Please wait a moment.");
+      throw new Error("Invalid API Key. Authentication failed (401).");
     }
     
-    throw new Error(error.message || "An unexpected error occurred while contacting the Cerebras LPU.");
+    throw new Error(error.message || "An unexpected error occurred during Gemini generation.");
   }
 }
