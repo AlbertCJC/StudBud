@@ -1,8 +1,10 @@
+
 import Cerebras from '@cerebras/cerebras_cloud_sdk';
 import { GenerationMode, StudyMaterialResponse } from "../types";
 
 // Retrieve and validate the API key at the module level
-const apiKey = (process.env['CEREBRAS_API_KEY'] || process.env['API_KEY'] || "").trim();
+// Using casting to any to avoid strict process.env typing issues if they persist
+const apiKey = (String((process.env as any)['CEREBRAS_API_KEY'] || (process.env as any)['API_KEY'] || "")).trim();
 
 // Initialize the client as a singleton following the suggested pattern
 const client = new Cerebras({
@@ -22,7 +24,7 @@ export async function generateStudyMaterial(
   
   // Runtime check for API key presence
   if (!apiKey || apiKey === "undefined" || apiKey === "null") {
-    throw new Error("Cerebras API key is missing. Please check your .env file and ensure CEREBRAS_API_KEY is set correctly.");
+    throw new Error("Cerebras API key is missing. Please check your environment variables and ensure CEREBRAS_API_KEY is set correctly.");
   }
 
   const systemInstruction = `You are a specialized educational assistant. 
@@ -67,7 +69,7 @@ export async function generateStudyMaterial(
       id: `cerebra-${Date.now()}-${index}`,
     })).slice(0, count);
 
-    // Return the generated items. Note: LPU inference currently handles text-based generation.
+    // Return the generated items.
     return { items, groundingUrls: [] };
 
   } catch (error: any) {
@@ -75,7 +77,7 @@ export async function generateStudyMaterial(
     
     // Provide actionable feedback for common authentication and rate limit errors
     if (error.status === 401) {
-      throw new Error("Cerebras Authentication Failed (401): The provided API key is incorrect or invalid. Verify your .env file.");
+      throw new Error("Cerebras Authentication Failed (401): The provided API key is incorrect or invalid. Verify your environment variables.");
     } else if (error.status === 429) {
       throw new Error("Cerebras Rate Limit Exceeded (429): Too many requests. Please wait a moment.");
     }
