@@ -1,11 +1,16 @@
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import Header from './components/Header';
 import ModeSelector from './components/ModeSelector';
 import FileUpload from './components/FileUpload';
 import Flashcard from './components/Flashcard';
 import QuizCard from './components/QuizCard';
-import { FlashcardData, QuizData, AppState, GenerationMode } from './types';
+import Hero from './components/Hero';
+import InputToggle from './components/InputToggle';
+import TextInputArea from './components/TextInputArea';
+import ProcessingStatus from './components/ProcessingStatus';
+import StudyNavigator from './components/StudyNavigator';
+import { AppState, GenerationMode } from './types';
 import { generateStudyMaterial } from './services/gemini';
 import { jsPDF } from 'jspdf';
 
@@ -92,35 +97,26 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col items-center justify-center p-6 max-w-7xl mx-auto w-full">
         {state === AppState.IDLE && (
           <div className="w-full flex flex-col items-center animate-in fade-in slide-in-from-bottom-8 duration-700">
-            <div className="text-center mb-10">
-              <h2 className="text-5xl lg:text-7xl font-black mb-6 tracking-tighter">
-                Learn <span className="text-cyan-500 italic">Faster</span>.
-              </h2>
-              <div className="flex gap-4 p-1.5 rounded-full border border-white/10 bg-white/5 backdrop-blur-md mb-12">
-                <button onClick={() => setInputTab('text')} className={`px-8 py-3 rounded-full text-sm font-bold transition-all ${inputTab === 'text' ? 'bg-cyan-500 text-black' : 'text-slate-400'}`}>Text Content</button>
-                <button onClick={() => setInputTab('file')} className={`px-8 py-3 rounded-full text-sm font-bold transition-all ${inputTab === 'file' ? 'bg-cyan-500 text-black' : 'text-slate-400'}`}>Upload File</button>
-              </div>
-            </div>
+            <Hero theme={theme} />
+            
+            <InputToggle 
+              activeTab={inputTab} 
+              onTabChange={setInputTab} 
+              theme={theme} 
+            />
 
-            {inputTab === 'text' ? (
-              <div className="w-full max-w-3xl flex flex-col gap-6">
-                <textarea
-                  value={textInput}
-                  onChange={(e) => setTextInput(e.target.value)}
-                  placeholder="Paste your notes here for instant Cerebras-powered generation..."
-                  className={`w-full h-80 p-8 rounded-[3rem] border-2 border-dashed focus:border-cyan-500 focus:ring-4 focus:ring-cyan-500/10 outline-none transition-all resize-none font-medium text-lg ${theme === 'dark' ? 'bg-slate-900/50 border-white/10' : 'bg-white border-slate-200'}`}
+            <div className="w-full flex justify-center">
+              {inputTab === 'text' ? (
+                <TextInputArea 
+                  value={textInput} 
+                  onChange={setTextInput} 
+                  onSubmit={handleTextInputSubmit} 
+                  theme={theme} 
                 />
-                <button 
-                  disabled={!textInput.trim()} 
-                  onClick={handleTextInputSubmit}
-                  className="w-full py-5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black rounded-[1.5rem] shadow-xl transition-all active:scale-95 disabled:opacity-20"
-                >
-                  Confirm Study Content
-                </button>
-              </div>
-            ) : (
-              <FileUpload onFileSelect={handleFileSelect} isLoading={false} theme={theme} />
-            )}
+              ) : (
+                <FileUpload onFileSelect={handleFileSelect} isLoading={false} theme={theme} />
+              )}
+            </div>
           </div>
         )}
 
@@ -134,12 +130,7 @@ const App: React.FC = () => {
         )}
 
         {state === AppState.PROCESSING && (
-          <div className="w-full max-w-md flex flex-col items-center gap-12 animate-in fade-in">
-            <div className="w-full h-3 rounded-full bg-white/10 overflow-hidden">
-              <div className="h-full bg-cyan-500 transition-all duration-300" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="text-cyan-500 font-black text-2xl animate-pulse">Cerebras LPU processing...</p>
-          </div>
+          <ProcessingStatus progress={progress} theme={theme} />
         )}
 
         {state === AppState.VIEWING && (
@@ -149,19 +140,24 @@ const App: React.FC = () => {
             ) : (
               <QuizCard key={studyData[currentCardIndex].id} data={studyData[currentCardIndex]} theme={theme} />
             )}
-            <div className="mt-14 flex items-center justify-center gap-8">
-              <button onClick={() => setCurrentCardIndex(Math.max(0, currentCardIndex - 1))} className="p-6 rounded-full border border-white/10 bg-white/5">←</button>
-              <span className="font-mono text-cyan-500 font-bold">{currentCardIndex + 1} / {studyData.length}</span>
-              <button onClick={() => setCurrentCardIndex(Math.min(studyData.length - 1, currentCardIndex + 1))} className="p-6 rounded-full border border-white/10 bg-white/5">→</button>
-            </div>
+            <StudyNavigator 
+              currentIndex={currentCardIndex}
+              total={studyData.length}
+              onPrev={() => setCurrentCardIndex(prev => Math.max(0, prev - 1))}
+              onNext={() => setCurrentCardIndex(prev => Math.min(studyData.length - 1, prev + 1))}
+              theme={theme}
+            />
           </div>
         )}
 
         {state === AppState.ERROR && (
-          <div className="text-center p-12 rounded-[3rem] border border-red-500/20 bg-red-500/5 max-w-lg">
-            <h2 className="text-3xl font-black text-red-500 mb-4">Error</h2>
-            <p className="text-slate-400 mb-8">{errorMsg}</p>
-            <button onClick={handleReset} className="px-8 py-3 bg-slate-800 rounded-full font-bold">Try Again</button>
+          <div className="text-center p-12 rounded-[4rem] border border-red-500/20 bg-red-500/5 max-w-lg shadow-2xl">
+            <div className="w-16 h-16 rounded-full bg-red-500/10 flex items-center justify-center text-red-500 mx-auto mb-6">
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
+            </div>
+            <h2 className="text-3xl font-black text-red-500 mb-4">Generation Failed</h2>
+            <p className="text-slate-400 mb-8 font-medium">{errorMsg}</p>
+            <button onClick={handleReset} className="w-full py-4 bg-slate-800 text-white hover:bg-slate-700 rounded-2xl font-black transition-all active:scale-95">Return Home</button>
           </div>
         )}
       </main>
