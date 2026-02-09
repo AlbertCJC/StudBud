@@ -11,11 +11,15 @@ interface ModeSelectorProps {
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQuestionCount, onSelect }) => {
   const [error, setError] = useState<string | null>(null);
+  const [isInputInvalid, setIsInputInvalid] = useState(false);
   const cardBg = theme === 'dark' ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl';
   const inputBg = theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-100';
 
   const handleCountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    // Allow the input to be empty, otherwise store as a number.
+    if (isInputInvalid) {
+      setIsInputInvalid(false);
+      setError(null);
+    }
     const value = e.target.value;
     if (value === '') {
       setQuestionCount('');
@@ -27,17 +31,31 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
   const handleSelectWithValidation = (mode: GenerationMode) => {
     const count = Number(questionCount);
 
-    if (questionCount === '' || !Number.isInteger(count) || count < 1 || count > 100) {
-      setError('Please enter a number between 1 and 100.');
+    let errorMessage: string | null = null;
+    if (questionCount === '' || !Number.isInteger(count)) {
+      errorMessage = "Please Input a number";
+    } else if (count < 1 || count > 100) {
+      errorMessage = "Number too big or too small. Only 1 - 100";
+    }
+
+    if (errorMessage) {
+      setError(errorMessage);
+      setIsInputInvalid(true);
       setTimeout(() => {
         setError(null);
+        setIsInputInvalid(false);
       }, 3000);
       return;
     }
     
     setError(null);
+    setIsInputInvalid(false);
     onSelect(mode, count);
   };
+
+  const inputFocusRing = isInputInvalid
+    ? 'ring-4 ring-red-500/50'
+    : 'focus:ring-4 focus:ring-cyan-500/20';
 
   return (
     <div className="w-full max-w-4xl flex flex-col items-center animate-in fade-in zoom-in-95 duration-500">
@@ -54,7 +72,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
             max="100"
             value={questionCount}
             onChange={handleCountChange}
-            className={`w-40 h-24 mx-auto text-center text-6xl font-black text-cyan-500 font-mono focus:outline-none focus:ring-4 focus:ring-cyan-500/20 border-none rounded-2xl transition-all ${inputBg}`}
+            className={`w-40 h-24 mx-auto text-center text-6xl font-black text-cyan-500 font-mono focus:outline-none border-none rounded-2xl transition-all ${inputBg} ${inputFocusRing}`}
           />
         </div>
       </div>
@@ -82,7 +100,7 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
       </div>
 
       {error && (
-        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl bg-red-500/90 backdrop-blur-sm text-white font-bold shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 z-50 flex items-center gap-3">
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-xl bg-red-500/90 backdrop-blur-sm text-white font-bold shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 z-50 flex items-center gap-3">
            <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
             </svg>
