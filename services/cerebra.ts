@@ -1,3 +1,4 @@
+
 import OpenAI from "openai";
 import { GenerationMode, StudyMaterialResponse } from "../types";
 
@@ -6,32 +7,20 @@ export async function generateStudyMaterial(
   mode: GenerationMode,
   count: number = 10
 ): Promise<StudyMaterialResponse> {
-
   const isFlashcards = mode === GenerationMode.FLASHCARDS;
 
-  // 1. UNIVERSAL API KEY EXTRACTION
-  // Checks both Vite (Client) and Node (Server) environments safely.
-  let apiKey = "";
-  try {
-    apiKey = (import.meta as any).env.VITE_CEREBRAS_API_KEY || "";
-  } catch (e) { /* Ignore Vite error in Node */ }
-
-  if (!apiKey && typeof process !== "undefined") {
-    apiKey = process.env.CEREBRAS_API_KEY || "";
-  }
-  
-  // Hardcoded Fallback (Only for your local testing in AI Studio)
-  // Replace the empty string below with your key if env vars fail
-  if (!apiKey) apiKey = ""; 
+  // Use a generic environment variable for the API key.
+  const apiKey = (import.meta as any).env.VITE_AI_API_KEY || "";
 
   if (!apiKey) {
-    throw new Error("❌ API Key is missing. Please set VITE_CEREBRAS_API_KEY (Vite) or CEREBRAS_API_KEY (Node) in your .env file.");
+    throw new Error("API Key is missing. Please set VITE_AI_API_KEY in your .env file.");
   }
 
-  // 2. INITIALIZE CLIENT (Per Cerebras Docs)
+  // NOTE: This client is configured for a specific AI provider.
+  // To use a different provider, you may need to update the baseURL.
   const client = new OpenAI({
     apiKey: apiKey,
-    baseURL: "https://api.cerebras.ai/v1", // Required Base URL
+    baseURL: "https://api.cerebras.ai/v1", // This baseURL is provider-specific.
     dangerouslyAllowBrowser: true 
   });
 
@@ -47,36 +36,38 @@ Output MUST be a single valid JSON object. Format: { "items": [ ... ] }`;
 
   try {
     const response = await client.chat.completions.create({
-      // 3. MODEL SELECTION (Critical Fix)
-      // According to docs, valid IDs are: "llama-3.3-70b" (Recommended) or "llama3.1-8b" (Fastest)
+      // Model selection is provider-specific.
       model: "llama-3.3-70b", 
       messages: [
         { role: "system", content: systemInstruction },
         { role: "user", content: `Context: "${content.slice(0, 30000)}"` }
       ],
-      response_format: { type: "json_object" }, // Supported by Llama 3.x
+      response_format: { type: "json_object" },
       temperature: 0.6,
       max_tokens: 8192,
     });
 
     const resultText = response.choices[0]?.message?.content;
-    if (!resultText) throw new Error("Empty response from Cerebras.");
+    if (!resultText) throw new Error("Empty response from the AI model.");
 
     const data = JSON.parse(resultText);
     
     const items = (data.items || []).map((item: any, index: number) => ({
       ...item,
-      id: `cerebra-${Date.now()}-${index}`,
+      id: `ai-gen-${Date.now()}-${index}`, // Generic ID
     })).slice(0, count);
 
     return { items, groundingUrls: [] };
 
   } catch (error: any) {
-    console.error("Cerebras API Error:", error);
+    console.error("AI API Error:", error);
     
-    // Documentation-specific error handling
+    // Generic error handling
+    if (error.status === 401) {
+       throw new Error(`Authentication Error (401). Please check your API key.`);
+    }
     if (error.status === 404) {
-       throw new Error(`Model not found (404). 'llama-3.3-70b' or 'llama3.1-8b' are the currently supported model IDs.`);
+       throw new Error(`Model not found (404). Please ensure the model name is correct for your provider.`);
     }
 
     throw new Error(error.message || "Failed to generate study materials.");

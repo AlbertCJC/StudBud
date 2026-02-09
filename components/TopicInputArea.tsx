@@ -22,9 +22,6 @@ const TopicInputArea: React.FC<TopicInputAreaProps> = ({ value, onChange, onSubm
           className={`w-full py-8 px-10 rounded-[2.5rem] border-2 focus:border-cyan-500 focus:ring-8 focus:ring-cyan-500/5 outline-none transition-all font-black text-2xl text-center shadow-inner ${inputBg}`}
           onKeyDown={(e) => e.key === 'Enter' && onSubmit()}
         />
-        <div className="absolute -top-4 left-1/2 -translate-x-1/2 bg-slate-800 text-cyan-400 border border-cyan-500/30 px-4 py-1 rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg">
-          Powered by Cerebras
-        </div>
       </div>
       <button 
         disabled={!value.trim()} 

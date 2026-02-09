@@ -18,9 +18,6 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme, onReset, isViewing,
         <h1 className="text-2xl font-black tracking-tighter bg-clip-text text-transparent bg-gradient-to-r from-cyan-500 to-blue-600 transition-all group-hover:scale-105">
           StudBud
         </h1>
-        <span className="hidden md:inline-block px-2 py-0.5 text-[8px] font-black bg-cyan-500/10 text-cyan-500 border border-cyan-500/20 rounded uppercase tracking-widest">
-          Cerebras LPU
-        </span>
       </div>
       
       <div className="flex items-center gap-4">

@@ -13,7 +13,7 @@ const Hero: React.FC<HeroProps> = ({ theme }) => {
         Your AI Study Partner.
       </h2>
       <p className={`text-lg md:text-xl font-medium max-w-2xl mx-auto leading-relaxed ${theme === 'dark' ? 'text-slate-400' : 'text-slate-600'}`}>
-        Powered by the <span className="text-cyan-500 font-bold">Cerebras LPU</span>. Instantly generate interactive study sets from your notes using state-of-the-art Llama 3.1 for the fastest inference speeds.
+        Transform your study material into engaging flashcards or quizzes in seconds. Simply paste your text, upload a file (PDF, DOCX, PPTX), or enter a topic to get started.
       </p>
     </div>
   );
