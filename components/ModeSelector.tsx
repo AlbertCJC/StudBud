@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { GenerationMode } from '../types';
 
 interface ModeSelectorProps {
@@ -10,6 +10,7 @@ interface ModeSelectorProps {
 }
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQuestionCount, onSelect }) => {
+  const [error, setError] = useState<string | null>(null);
   const cardBg = theme === 'dark' ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl';
   const inputBg = theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-100';
 
@@ -24,15 +25,17 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
   };
 
   const handleSelectWithValidation = (mode: GenerationMode) => {
-    let count = Number(questionCount);
+    const count = Number(questionCount);
 
-    if (!Number.isInteger(count) || count < 1) {
-      count = 1;
-    } else if (count > 100) {
-      count = 100;
+    if (questionCount === '' || !Number.isInteger(count) || count < 1 || count > 100) {
+      setError('Please enter a number between 1 and 100.');
+      setTimeout(() => {
+        setError(null);
+      }, 3000);
+      return;
     }
     
-    setQuestionCount(count);
+    setError(null);
     onSelect(mode, count);
   };
 
@@ -77,6 +80,15 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
           <h3 className="text-3xl font-black tracking-tight">Practice Quiz</h3>
         </button>
       </div>
+
+      {error && (
+        <div className="fixed bottom-10 left-1/2 -translate-x-1/2 px-6 py-3 rounded-2xl bg-red-500/90 backdrop-blur-sm text-white font-bold shadow-2xl animate-in fade-in slide-in-from-bottom-4 duration-300 z-50 flex items-center gap-3">
+           <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+            </svg>
+          <span>{error}</span>
+        </div>
+      )}
     </div>
   );
 };
