@@ -123,7 +123,7 @@ const App: React.FC = () => {
     setState(AppState.SELECTING_MODE);
   };
 
-  const startGeneration = async (selectedMode: GenerationMode) => {
+  const startGeneration = async (selectedMode: GenerationMode, count: number) => {
     if (!pendingContent.current) return;
     setMode(selectedMode);
     setState(AppState.PROCESSING);
@@ -133,7 +133,7 @@ const App: React.FC = () => {
       const { items, groundingUrls: urls } = await generateStudyMaterial(
         pendingContent.current, 
         selectedMode, 
-        Number(questionCount)
+        count
       );
       setProgress(100);
       setTimeout(() => {

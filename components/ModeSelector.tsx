@@ -1,16 +1,15 @@
 
-import React, { useState } from 'react';
+import React from 'react';
 import { GenerationMode } from '../types';
 
 interface ModeSelectorProps {
   theme: 'dark' | 'light';
   questionCount: number | string;
   setQuestionCount: (n: number | string) => void;
-  onSelect: (mode: GenerationMode) => void;
+  onSelect: (mode: GenerationMode, count: number) => void;
 }
 
 const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQuestionCount, onSelect }) => {
-  const [error, setError] = useState<string | null>(null);
   const cardBg = theme === 'dark' ? 'bg-slate-900 border-white/10' : 'bg-white border-slate-200 shadow-xl';
   const inputBg = theme === 'dark' ? 'bg-slate-800/50' : 'bg-slate-100';
 
@@ -25,13 +24,16 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
   };
 
   const handleSelectWithValidation = (mode: GenerationMode) => {
-    const count = Number(questionCount);
-    if (Number.isInteger(count) && count >= 1 && count <= 100) {
-      setError(null);
-      onSelect(mode);
-    } else {
-      setError("Please enter a whole number between 1 and 100.");
+    let count = Number(questionCount);
+
+    if (!Number.isInteger(count) || count < 1) {
+      count = 1;
+    } else if (count > 100) {
+      count = 100;
     }
+    
+    setQuestionCount(count);
+    onSelect(mode, count);
   };
 
   return (
@@ -52,11 +54,6 @@ const ModeSelector: React.FC<ModeSelectorProps> = ({ theme, questionCount, setQu
             className={`w-40 h-24 mx-auto text-center text-6xl font-black text-cyan-500 font-mono focus:outline-none focus:ring-4 focus:ring-cyan-500/20 border-none rounded-2xl transition-all ${inputBg}`}
           />
         </div>
-        {error && (
-            <p className="text-red-500 text-sm font-semibold animate-in fade-in duration-300">
-              {error}
-            </p>
-        )}
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full mt-6">
