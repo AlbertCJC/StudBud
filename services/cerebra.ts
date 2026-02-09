@@ -62,7 +62,6 @@ Output MUST be a single valid JSON object. Format: { "items": [ ... ] }`;
   } catch (error: any) {
     console.error("AI API Error:", error);
     
-    // Generic error handling
     if (error.status === 401) {
        throw new Error(`Authentication Error (401). Please check your API key.`);
     }
