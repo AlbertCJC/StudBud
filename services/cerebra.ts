@@ -37,7 +37,7 @@ Output MUST be a single valid JSON object. Format: { "items": [ ... ] }`;
   try {
     const response = await client.chat.completions.create({
       // Model selection is provider-specific.
-      model: "llama3.1-8b", 
+      model: "gpt-oss-120b", 
       messages: [
         { role: "system", content: systemInstruction },
         { role: "user", content: `Context: "${content.slice(0, 30000)}"` }
